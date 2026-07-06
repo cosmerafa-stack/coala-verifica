@@ -1,25 +1,24 @@
 name: Verificar Sefaz-BA / NFe / CTe
 
 on:
-  # Desativado: nfe.fazenda.gov.br / cte.fazenda.gov.br / sefaz.ba.gov.br bloqueiam
-  # os ranges de IP do GitHub Actions (mesmo "Connection reset by peer" do Supabase
-  # Edge Functions). Deixado como workflow_dispatch pra testar se um dia parar de bloquear.
-  # schedule:
-  #   - cron: "*/5 * * * *"
+  # A cada 30 min. O runner windows-latest consome minutos do plano gratuito do
+  # GitHub (2000 min/mês, com multiplicador 2x pra Windows — repositório é
+  # privado). Nessa cadência dá ~1440 min/mês faturados, dentro do limite grátis
+  # com folga. Pra rodar mais rápido, ou o repositório vira público (Actions
+  # ilimitado) ou é preciso habilitar cobrança na conta do GitHub.
+  schedule:
+    - cron: "*/30 * * * *"
   workflow_dispatch: {}
 
 jobs:
   verificar:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
       - name: Rodar verificação
+        shell: powershell
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: deno run --allow-net --allow-env web/scripts/verificar-sefaz.ts
+        run: web/scripts/verificar-sefaz.ps1
