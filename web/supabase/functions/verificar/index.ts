@@ -166,14 +166,38 @@ const PAGINAS_SPED = [
 
 async function verificarSped(resultado: Resultado) {
   for (const pagina of PAGINAS_SPED) {
+    const fonte = `SPED - ${pagina.nome}`;
     try {
       const html = await fetchComSessao(pagina.url);
       const doc = parseHtml(html);
       const texto = normalizarEspacos(doc.body?.textContent ?? html);
       const hash = await sha256(texto);
 
+      const { data: anterior, error: erroLeitura } = await supabase
+        .from("sped_hash_atual")
+        .select("hash")
+        .eq("fonte", fonte)
+        .maybeSingle();
+      if (erroLeitura) {
+        resultado.erros.push(`SPED ${pagina.nome} leitura hash: ${erroLeitura.message}`);
+        continue;
+      }
+
+      if (anterior?.hash === hash) continue; // nada mudou
+
+      const { error: erroUpsertHash } = await supabase
+        .from("sped_hash_atual")
+        .upsert({ fonte, hash, atualizado_em: new Date().toISOString() });
+      if (erroUpsertHash) {
+        resultado.erros.push(`SPED ${pagina.nome} upsert hash: ${erroUpsertHash.message}`);
+        continue;
+      }
+
+      // Sem hash anterior = primeira vez que vemos essa página, não é uma mudança real.
+      if (!anterior) continue;
+
       const linha = {
-        fonte: `SPED - ${pagina.nome}`,
+        fonte,
         titulo: `Conteúdo da página atualizado (hash ${hash})`,
         descricao: `Alguma mudança foi detectada na página do módulo ${pagina.nome} do SPED (sem detalhamento automático — confira o link para ver o que mudou).`,
         data_publicacao: new Date().toLocaleDateString("pt-BR"),

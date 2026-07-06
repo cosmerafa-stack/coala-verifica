@@ -9,6 +9,17 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
+  <div id="portaoSenha" class="portao-senha">
+    <form id="formSenha" class="portao-cartao">
+      <span class="logo" style="font-size:2.5rem">🐨</span>
+      <h2>Coala Verifica</h2>
+      <p class="texto-apagado">Acesso restrito — digite a senha</p>
+      <input type="password" id="campoSenha" placeholder="Senha" autocomplete="current-password" autofocus />
+      <button type="submit">Entrar</button>
+      <p class="texto-apagado" id="erroSenha" style="display:none;color:var(--vermelho)">Senha incorreta.</p>
+    </form>
+  </div>
+
   <header class="topo">
     <div class="marca">
       <span class="logo">🐨</span>
@@ -17,9 +28,12 @@
         <p>Notas técnicas e status da Sefaz — Bahia</p>
       </div>
     </div>
-    <div class="topo-status" id="statusGeral">
-      <span class="bolinha" id="bolinhaGeral"></span>
-      <span id="textoStatusGeral">Carregando...</span>
+    <div class="topo-acoes">
+      <button class="botao-tema" id="botaoTema" title="Alternar tema" aria-label="Alternar tema clara/escura">🌙</button>
+      <div class="topo-status" id="statusGeral">
+        <span class="bolinha" id="bolinhaGeral"></span>
+        <span id="textoStatusGeral">Carregando...</span>
+      </div>
     </div>
   </header>
 
@@ -72,8 +86,8 @@
           </label>
           <label>Filtrar data por
             <select id="filtroCampoData">
+              <option value="data_publicacao" selected>Data publicada</option>
               <option value="detectado_em">Data detectada</option>
-              <option value="data_publicacao">Data publicada</option>
             </select>
           </label>
           <label>De <input type="date" id="filtroDe" /></label>

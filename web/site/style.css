@@ -2,6 +2,7 @@
   --fundo: #12141f;
   --fundo-cartao: #1b1e2e;
   --fundo-cartao-alt: #21243a;
+  --fundo-grafico: #171a29;
   --borda: #2e3350;
   --texto: #e4e6f0;
   --texto-apagado: #9296b3;
@@ -11,6 +12,22 @@
   --laranja: #e68c28;
   --vermelho: #dc4646;
   --roxo: #9632a0;
+}
+
+:root[data-theme="light"] {
+  --fundo: #f4f5f9;
+  --fundo-cartao: #ffffff;
+  --fundo-cartao-alt: #eceef5;
+  --fundo-grafico: #f1f2f8;
+  --borda: #d8dbe8;
+  --texto: #1b1e2e;
+  --texto-apagado: #666b82;
+  --destaque: #2f8f3f;
+  --azul: #1c7ed6;
+  --amarelo: #b3860a;
+  --laranja: #c9660a;
+  --vermelho: #c92a2a;
+  --roxo: #862e9c;
 }
 
 * { box-sizing: border-box; }
@@ -38,6 +55,27 @@ body {
 .marca .logo { font-size: 2.2rem; }
 .marca h1 { margin: 0; font-size: 1.4rem; }
 .marca p { margin: 0; color: var(--texto-apagado); font-size: 0.85rem; }
+
+.topo-acoes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.botao-tema {
+  background: var(--fundo-cartao-alt);
+  border: 1px solid var(--borda);
+  color: var(--texto);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.botao-tema:hover { border-color: var(--destaque); }
 
 .topo-status {
   display: flex;
@@ -110,7 +148,54 @@ th { color: var(--texto-apagado); font-weight: 600; font-size: 0.8rem; text-tran
 .status-instavel { color: var(--amarelo); font-weight: 700; }
 .status-falha { color: var(--vermelho); font-weight: 700; }
 
-.grafico-container { background: #171a29; border-radius: 8px; padding: 12px; }
+.grafico-container { background: var(--fundo-grafico); border-radius: 8px; padding: 12px; }
+
+.portao-senha {
+  position: fixed;
+  inset: 0;
+  background: var(--fundo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.portao-senha.oculto { display: none; }
+.portao-cartao {
+  background: var(--fundo-cartao);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  max-width: 320px;
+  width: 100%;
+}
+.portao-cartao h2 { margin: 0; }
+.portao-cartao input {
+  width: 100%;
+  background: var(--fundo-cartao-alt);
+  border: 1px solid var(--borda);
+  color: var(--texto);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  margin-top: 8px;
+}
+.portao-cartao button {
+  width: 100%;
+  background: var(--destaque);
+  border: none;
+  color: #0c2a04;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 4px;
+}
 
 .filtros {
   display: flex;

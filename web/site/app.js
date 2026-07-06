@@ -3,6 +3,47 @@ const headers = {
   Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
 };
 
+let ultimosPontosGrafico = null;
+
+// ---------- portão de senha ----------
+
+const SENHA_ACESSO = "any@2019";
+const CHAVE_SESSAO_SENHA = "coala-verifica-autenticado";
+
+const portao = document.getElementById("portaoSenha");
+if (sessionStorage.getItem(CHAVE_SESSAO_SENHA) === "1") {
+  portao.classList.add("oculto");
+}
+
+document.getElementById("formSenha").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const valor = document.getElementById("campoSenha").value;
+  if (valor === SENHA_ACESSO) {
+    sessionStorage.setItem(CHAVE_SESSAO_SENHA, "1");
+    portao.classList.add("oculto");
+  } else {
+    document.getElementById("erroSenha").style.display = "block";
+  }
+});
+
+// ---------- tema claro/escuro ----------
+
+const CHAVE_TEMA = "coala-verifica-tema";
+
+function aplicarTema(tema) {
+  document.documentElement.setAttribute("data-theme", tema);
+  document.getElementById("botaoTema").textContent = tema === "light" ? "🌙" : "☀️";
+  localStorage.setItem(CHAVE_TEMA, tema);
+  if (ultimosPontosGrafico) atualizarGrafico(ultimosPontosGrafico);
+}
+
+document.getElementById("botaoTema").addEventListener("click", () => {
+  const atual = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  aplicarTema(atual);
+});
+
+aplicarTema(localStorage.getItem(CHAVE_TEMA) || "dark");
+
 async function supabaseGet(caminho) {
   const resp = await fetch(`${SUPABASE_URL}/rest/v1/${caminho}`, { headers });
   if (!resp.ok) throw new Error(`Erro ${resp.status} ao consultar ${caminho}`);
@@ -96,6 +137,13 @@ function preencherTabelaServicos(servicos) {
 }
 
 function atualizarGrafico(pontos) {
+  ultimosPontosGrafico = pontos;
+
+  const estilo = getComputedStyle(document.documentElement);
+  const corTexto = estilo.getPropertyValue("--texto-apagado").trim();
+  const corGrade = estilo.getPropertyValue("--borda").trim();
+  const corDestaque = estilo.getPropertyValue("--destaque").trim();
+
   const ctx = document.getElementById("graficoResposta");
   const labels = pontos.map((p) => new Date(p.verificado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
   const dados = pontos.map((p) => NIVEL_PARA_Y[p.nivel] ?? null);
@@ -108,7 +156,7 @@ function atualizarGrafico(pontos) {
       labels,
       datasets: [{
         data: dados,
-        borderColor: "#7fd858",
+        borderColor: corDestaque,
         pointBackgroundColor: cores,
         pointBorderColor: cores,
         pointRadius: 5,
@@ -123,12 +171,12 @@ function atualizarGrafico(pontos) {
           min: 0.5, max: 5.5,
           ticks: {
             stepSize: 1,
-            color: "#9296b3",
+            color: corTexto,
             callback: (v) => ({ 1: "Normal: <= 2s", 2: "Lento: <= 5s", 3: "Muito lento: < 30s", 4: "Timeout: > 30s", 5: "Erro" }[v] ?? ""),
           },
-          grid: { color: "#2e3350" },
+          grid: { color: corGrade },
         },
-        x: { ticks: { color: "#9296b3" }, grid: { color: "#2e3350" } },
+        x: { ticks: { color: corTexto }, grid: { color: corGrade } },
       },
     },
   });
@@ -143,7 +191,7 @@ async function atualizarStatusGeral() {
     bolinha.className = "bolinha " + (temProblema ? "problema" : "ok");
     texto.textContent = temProblema
       ? "Instabilidade detectada para a Bahia"
-      : "Tudo normal para a Bahia";
+      : "Tudo certo na Bahia!";
   } catch {
     bolinha.className = "bolinha";
     texto.textContent = "Sem dados";
@@ -217,7 +265,7 @@ document.getElementById("btnLimparFiltros").addEventListener("click", () => {
   document.getElementById("filtroFonte").value = "";
   document.getElementById("filtroTitulo").value = "";
   document.getElementById("filtroAssunto").value = "";
-  document.getElementById("filtroCampoData").value = "detectado_em";
+  document.getElementById("filtroCampoData").value = "data_publicacao";
   document.getElementById("filtroDe").value = "";
   document.getElementById("filtroAte").value = "";
   aplicarFiltrosNotas();
