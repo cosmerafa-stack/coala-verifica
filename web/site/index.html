@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Coala Verifica — Monitor Sefaz &amp; Notas Técnicas</title>
+<title>Verificador Coala — Monitor Sefaz &amp; Notas Técnicas</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2248%22 fill=%22%23005a9e%22/><text x=%2250%22 y=%2263%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Segoe UI, Arial%22 font-weight=%22bold%22>NT</text></svg>" />
 <link rel="stylesheet" href="style.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -12,11 +12,14 @@
   <div id="portaoSenha" class="portao-senha">
     <form id="formSenha" class="portao-cartao">
       <span class="logo" style="font-size:2.5rem">🐨</span>
-      <h2>Coala Verifica</h2>
+      <h2>Verificador Coala</h2>
       <p class="texto-apagado">Acesso restrito — digite a senha</p>
       <input type="password" id="campoSenha" placeholder="Senha" autocomplete="current-password" autofocus />
       <button type="submit">Entrar</button>
-      <p class="texto-apagado" id="erroSenha" style="display:none;color:var(--vermelho)">Senha incorreta.</p>
+      <div id="erroSenha" style="display:none">
+        <p class="texto-apagado" style="color:var(--vermelho)">Senha incorreta.</p>
+        <p class="texto-apagado">Lembrete de senha: any.....</p>
+      </div>
     </form>
   </div>
 
@@ -24,16 +27,24 @@
     <div class="marca">
       <span class="logo">🐨</span>
       <div>
-        <h1>Coala Verifica</h1>
+        <h1>Verificador Coala</h1>
         <p>Notas técnicas e status da Sefaz — Bahia</p>
       </div>
     </div>
     <div class="topo-acoes">
+      <label class="seletor-intervalo">Atualizar a cada
+        <select id="intervaloAtualizacao">
+          <option value="60000">1 minuto</option>
+          <option value="120000" selected>2 minutos</option>
+          <option value="300000">5 minutos</option>
+        </select>
+      </label>
       <button class="botao-tema" id="botaoTema" title="Alternar tema" aria-label="Alternar tema clara/escura">🌙</button>
       <div class="topo-status" id="statusGeral">
         <span class="bolinha" id="bolinhaGeral"></span>
         <span id="textoStatusGeral">Carregando...</span>
       </div>
+      <button class="botao-sair" id="botaoSair" title="Sair">Sair</button>
     </div>
   </header>
 
@@ -59,7 +70,7 @@
       </div>
 
       <div class="cartao">
-        <h2>Tempo de resposta do webservice <small>(amostrado a cada verificação, ~5 min)</small></h2>
+        <h2>Tempo de resposta do webservice <small>(amostrado a cada verificação, ~2 min)</small></h2>
         <div class="grafico-container">
           <canvas id="graficoResposta" height="90"></canvas>
         </div>
@@ -109,7 +120,7 @@
   </main>
 
   <footer>
-    <p>Coala Verifica — dados oficiais de nfe.fazenda.gov.br, cte.fazenda.gov.br, gov.br/nfse e SPED. Atualizado automaticamente a cada 5 minutos.</p>
+    <p>Verificador Coala — dados oficiais de nfe.fazenda.gov.br, cte.fazenda.gov.br, gov.br/nfse e SPED. Atualizado automaticamente a cada 2 minutos (configurável no topo da página).</p>
   </footer>
 
   <script src="config.js"></script>

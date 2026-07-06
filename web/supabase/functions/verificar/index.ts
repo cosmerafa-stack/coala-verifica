@@ -1,4 +1,4 @@
-// Coala Verifica — Edge Function que verifica notas técnicas (MDFe, NFSe Nacional, SPED).
+// Verificador Coala — Edge Function que verifica notas técnicas (MDFe, NFSe Nacional, SPED).
 // Portado do app desktop (C#/.NET) para Deno. Chamada periodicamente por um cron job
 // do Supabase (pg_cron -> net.http_post).
 // NFe/NFCe e CTe (disponibilidade, tempo de resposta e notas técnicas) NÃO ficam aqui:

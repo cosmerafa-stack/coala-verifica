@@ -77,6 +77,17 @@ body {
 }
 .botao-tema:hover { border-color: var(--destaque); }
 
+.botao-sair {
+  background: var(--fundo-cartao-alt);
+  border: 1px solid var(--borda);
+  color: var(--texto);
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.botao-sair:hover { border-color: var(--vermelho); color: var(--vermelho); }
+
 .topo-status {
   display: flex;
   align-items: center;

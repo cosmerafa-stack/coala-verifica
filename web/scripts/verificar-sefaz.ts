@@ -1,4 +1,4 @@
-// Coala Verifica — checagens que a Sefaz/Fazenda bloqueia quando saem da rede do
+// Verificador Coala — checagens que a Sefaz/Fazenda bloqueia quando saem da rede do
 // Supabase Edge Functions (Deno Deploy). Rodado à parte, via GitHub Actions, de uma
 // rede que não está bloqueada: disponibilidade oficial, tempo de resposta e notas
 // técnicas de NFe/NFCe e CTe. MDFe, NFSe Nacional e SPED continuam na Edge Function

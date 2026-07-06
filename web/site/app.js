@@ -10,9 +10,21 @@ let ultimosPontosGrafico = null;
 const SENHA_ACESSO = "any@2019";
 const CHAVE_SESSAO_SENHA = "coala-verifica-autenticado";
 
+function pedirPermissaoNotificacao() {
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission === "default") Notification.requestPermission();
+}
+
+function notificar(titulo, corpo) {
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission !== "granted") return;
+  new Notification(titulo, { body: corpo, icon: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f428.png" });
+}
+
 const portao = document.getElementById("portaoSenha");
 if (sessionStorage.getItem(CHAVE_SESSAO_SENHA) === "1") {
   portao.classList.add("oculto");
+  pedirPermissaoNotificacao();
 }
 
 document.getElementById("formSenha").addEventListener("submit", (ev) => {
@@ -21,9 +33,17 @@ document.getElementById("formSenha").addEventListener("submit", (ev) => {
   if (valor === SENHA_ACESSO) {
     sessionStorage.setItem(CHAVE_SESSAO_SENHA, "1");
     portao.classList.add("oculto");
+    pedirPermissaoNotificacao();
   } else {
     document.getElementById("erroSenha").style.display = "block";
   }
+});
+
+document.getElementById("botaoSair").addEventListener("click", () => {
+  sessionStorage.removeItem(CHAVE_SESSAO_SENHA);
+  document.getElementById("campoSenha").value = "";
+  document.getElementById("erroSenha").style.display = "none";
+  portao.classList.remove("oculto");
 });
 
 // ---------- tema claro/escuro ----------
@@ -182,6 +202,8 @@ function atualizarGrafico(pontos) {
   });
 }
 
+let problemaConhecido = null; // null = ainda não temos uma leitura de referência
+
 async function atualizarStatusGeral() {
   const bolinha = document.getElementById("bolinhaGeral");
   const texto = document.getElementById("textoStatusGeral");
@@ -192,6 +214,11 @@ async function atualizarStatusGeral() {
     texto.textContent = temProblema
       ? "Instabilidade detectada para a Bahia"
       : "Tudo certo na Bahia!";
+
+    if (problemaConhecido !== null && temProblema && !problemaConhecido) {
+      notificar("Verificador Coala — instabilidade na Sefaz", "Foi detectado um problema de disponibilidade para a Bahia.");
+    }
+    problemaConhecido = temProblema;
   } catch {
     bolinha.className = "bolinha";
     texto.textContent = "Sem dados";
@@ -201,9 +228,20 @@ async function atualizarStatusGeral() {
 // ---------- seção notas técnicas ----------
 
 let todasNotas = [];
+let idsNotasConhecidas = null; // null = ainda não temos uma leitura de referência
 
 async function carregarNotas() {
   todasNotas = await supabaseGet("notas_tecnicas?select=*&order=detectado_em.desc&limit=1000");
+
+  const idsAtuais = new Set(todasNotas.map((n) => n.id));
+  if (idsNotasConhecidas) {
+    for (const n of todasNotas) {
+      if (!idsNotasConhecidas.has(n.id)) {
+        notificar("Verificador Coala — nova nota técnica", `${n.fonte}: ${n.titulo}`);
+      }
+    }
+  }
+  idsNotasConhecidas = idsAtuais;
 
   const selectFonte = document.getElementById("filtroFonte");
   const fontes = [...new Set(todasNotas.map((n) => n.fonte))].sort();
@@ -271,8 +309,29 @@ document.getElementById("btnLimparFiltros").addEventListener("click", () => {
   aplicarFiltrosNotas();
 });
 
+// ---------- intervalo de atualização ----------
+
+const CHAVE_INTERVALO = "coala-verifica-intervalo";
+let temporizadorStatus = null;
+let temporizadorNotas = null;
+
+function aplicarIntervalo(ms) {
+  if (temporizadorStatus) clearInterval(temporizadorStatus);
+  if (temporizadorNotas) clearInterval(temporizadorNotas);
+  temporizadorStatus = setInterval(carregarStatus, ms);
+  temporizadorNotas = setInterval(carregarNotas, ms);
+  localStorage.setItem(CHAVE_INTERVALO, String(ms));
+}
+
+const seletorIntervalo = document.getElementById("intervaloAtualizacao");
+const intervaloSalvo = localStorage.getItem(CHAVE_INTERVALO);
+if (intervaloSalvo && seletorIntervalo.querySelector(`option[value="${intervaloSalvo}"]`)) {
+  seletorIntervalo.value = intervaloSalvo;
+}
+seletorIntervalo.addEventListener("change", () => aplicarIntervalo(Number(seletorIntervalo.value)));
+
 // ---------- inicialização ----------
 
 carregarStatus();
 carregarNotas();
-setInterval(carregarStatus, 60_000);
+aplicarIntervalo(Number(seletorIntervalo.value));
