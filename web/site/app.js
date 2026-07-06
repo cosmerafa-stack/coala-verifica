@@ -207,6 +207,7 @@ let problemaConhecido = null; // null = ainda não temos uma leitura de referên
 async function atualizarStatusGeral() {
   const bolinha = document.getElementById("bolinhaGeral");
   const texto = document.getElementById("textoStatusGeral");
+  const ultimaVerificacao = document.getElementById("ultimaVerificacao");
   try {
     const disp = await supabaseGet("disponibilidade_oficial?select=*&order=verificado_em.desc&limit=30");
     const temProblema = disp.some((d) => d.cor !== "verde");
@@ -214,6 +215,12 @@ async function atualizarStatusGeral() {
     texto.textContent = temProblema
       ? "Instabilidade detectada para a Bahia"
       : "Tudo certo na Bahia!";
+
+    if (disp.length > 0) {
+      const maisRecente = disp.reduce((a, b) => (a.verificado_em > b.verificado_em ? a : b));
+      const hora = new Date(maisRecente.verificado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      ultimaVerificacao.textContent = `Última verificação: ${hora}`;
+    }
 
     if (problemaConhecido !== null && temProblema && !problemaConhecido) {
       notificar("Verificador Coala — instabilidade na Sefaz", "Foi detectado um problema de disponibilidade para a Bahia.");

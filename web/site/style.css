@@ -106,6 +106,13 @@ body {
 .bolinha.ok { background: var(--destaque); }
 .bolinha.problema { background: var(--vermelho); }
 
+.ultima-verificacao {
+  color: var(--texto-apagado);
+  font-size: 0.78rem;
+  padding-left: 8px;
+  border-left: 1px solid var(--borda);
+}
+
 .abas-principais {
   display: flex;
   gap: 4px;
