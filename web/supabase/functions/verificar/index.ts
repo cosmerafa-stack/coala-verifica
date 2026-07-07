@@ -1,9 +1,9 @@
 // Verificador Coala — Edge Function que verifica notas técnicas (MDFe, NFSe Nacional, SPED).
 // Portado do app desktop (C#/.NET) para Deno. Chamada periodicamente por um cron job
-// do Supabase (pg_cron -> net.http_post).
+// do Supabase (pg_cron -> net.http_post) e também pelo botão "Atualizar agora" do site.
 // NFe/NFCe e CTe (disponibilidade, tempo de resposta e notas técnicas) NÃO ficam aqui:
-// a rede do Supabase Edge Functions é bloqueada por nfe.fazenda.gov.br/cte.fazenda.gov.br/
-// sefaz.ba.gov.br. Essas checagens rodam via GitHub Actions (web/scripts/verificar-sefaz.ts).
+// nfe.fazenda.gov.br/cte.fazenda.gov.br/sefaz.ba.gov.br derrubam a conexão de clientes
+// não-Windows. Essas checagens rodam via GitHub Actions (web/scripts/verificar-sefaz.ps1).
 import { DOMParser, Element } from "https://deno.land/x/deno_dom@v0.1.45/deno-dom-wasm.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -218,7 +218,20 @@ async function verificarSped(resultado: Resultado) {
 
 // ---------- handler principal ----------
 
-Deno.serve(async (_req) => {
+// O botão "Atualizar agora" do site chama essa function direto do navegador
+// (origem diferente: verificadorcoala.pages.dev -> *.supabase.co), então
+// precisa dos cabeçalhos CORS — sem eles o navegador bloqueia a chamada.
+const cabecalhosCors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: cabecalhosCors });
+  }
+
   const resultado: Resultado = { notas: 0, erros: [] };
 
   await verificarMdfe(resultado);
@@ -226,6 +239,6 @@ Deno.serve(async (_req) => {
   await verificarSped(resultado);
 
   return new Response(JSON.stringify(resultado, null, 2), {
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...cabecalhosCors },
   });
 });

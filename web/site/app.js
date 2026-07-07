@@ -372,13 +372,39 @@ if (intervaloSalvo && seletorIntervalo.querySelector(`option[value="${intervaloS
 seletorIntervalo.addEventListener("change", () => aplicarIntervalo(Number(seletorIntervalo.value)));
 
 // ---------- forçar atualização ----------
+//
+// "Atualizar agora" não só reexibe o que já está no banco — dispara uma
+// checagem nova de verdade. MDFe/NFSe/SPED (Edge Function "verificar") são
+// rápidos e o resultado sai na hora. NFe/NFCe/CTe dependem do workflow do
+// GitHub Actions (runner Windows, ~30s pra rodar) e têm um limite de 5 min
+// entre disparos — sem isso, cliques repetidos aqui estourariam o orçamento
+// gratuito de minutos do GitHub Actions.
 
 const botaoAtualizar = document.getElementById("botaoAtualizar");
+const mensagemAtualizar = document.getElementById("mensagemAtualizar");
+
 botaoAtualizar.addEventListener("click", async () => {
   botaoAtualizar.disabled = true;
-  botaoAtualizar.textContent = "🔄 Atualizando...";
+  botaoAtualizar.textContent = "🔄 Verificando...";
+  mensagemAtualizar.textContent = "";
+
   try {
+    const [resultadoVerificar, resultadoSefaz] = await Promise.all([
+      fetch(`${SUPABASE_URL}/functions/v1/verificar`, { method: "POST" }).then((r) => r.json()).catch(() => null),
+      fetch(`${SUPABASE_URL}/functions/v1/disparar-verificacao-sefaz`, { method: "POST" }).then((r) => r.json()).catch(() => null),
+    ]);
+
     await Promise.all([carregarStatus(), carregarNotas()]);
+
+    const partes = [];
+    if (resultadoVerificar) partes.push(`MDFe/NFSe/SPED verificados agora (${resultadoVerificar.notas} notas conferidas)`);
+    if (resultadoSefaz?.disparado) partes.push("NFe/NFCe/CTe: verificação disparada, deve refletir em ~1 min");
+    else if (resultadoSefaz?.motivo) partes.push(`NFe/NFCe/CTe: ${resultadoSefaz.motivo}`);
+    mensagemAtualizar.textContent = partes.join(" · ");
+
+    if (resultadoSefaz?.disparado) {
+      setTimeout(() => { carregarStatus(); carregarNotas(); }, 45_000);
+    }
   } finally {
     botaoAtualizar.disabled = false;
     botaoAtualizar.textContent = "🔄 Atualizar agora";
