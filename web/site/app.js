@@ -222,7 +222,22 @@ function atualizarGrafico(pontos) {
           },
           grid: { color: corGrade },
         },
-        x: { ticks: { color: corTexto }, grid: { color: corGrade } },
+        x: {
+          ticks: {
+            color: corTexto,
+            // Por padrão o Chart.js decide sozinho quais rótulos cabem sem
+            // sobrepor e pode esconder justamente o mais recente. Mostra só
+            // ~15 espaçados, mas o último (dado mais novo) sempre aparece.
+            autoSkip: false,
+            maxRotation: 60,
+            minRotation: 60,
+            callback: (_valor, indice) => {
+              const passo = Math.max(1, Math.ceil(labels.length / 15));
+              return indice === labels.length - 1 || indice % passo === 0 ? labels[indice] : "";
+            },
+          },
+          grid: { color: corGrade },
+        },
       },
     },
   });
