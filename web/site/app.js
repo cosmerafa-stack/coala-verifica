@@ -376,9 +376,9 @@ seletorIntervalo.addEventListener("change", () => aplicarIntervalo(Number(seleto
 // "Atualizar agora" não só reexibe o que já está no banco — dispara uma
 // checagem nova de verdade. MDFe/NFSe/SPED (Edge Function "verificar") são
 // rápidos e o resultado sai na hora. NFe/NFCe/CTe dependem do workflow do
-// GitHub Actions (runner Windows, ~30s pra rodar) e têm um limite de 5 min
-// entre disparos — sem isso, cliques repetidos aqui estourariam o orçamento
-// gratuito de minutos do GitHub Actions.
+// GitHub Actions (runner Windows, ~30s pra rodar) e têm um limite de 1 min
+// entre disparos, só pra evitar disparo duplicado em cliques muito próximos
+// (o repo é público, então rodar o runner não tem custo).
 
 const botaoAtualizar = document.getElementById("botaoAtualizar");
 const mensagemAtualizar = document.getElementById("mensagemAtualizar");

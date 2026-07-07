@@ -7,16 +7,19 @@
 // nunca falhou, então essa function só serve de ponte: o pg_cron chama ela, e
 // ela chama a API do GitHub pra disparar o workflow via workflow_dispatch.
 //
+// O repositório é público, então o runner Windows do GitHub Actions é grátis e
+// ilimitado — por isso dá pra rodar a cada 2 min, igual o monitor da
+// Tecnospeed, sem se preocupar com orçamento de minutos.
+//
 // Também é chamada pelo botão "Atualizar agora" do site — como essa function
 // não exige autenticação (verify_jwt=false) pra poder ser chamada pelo
-// pg_cron, qualquer um que descobrir a URL poderia chamá-la direto e ficar
-// disparando o workflow sem parar, estourando o orçamento gratuito do runner
-// Windows do GitHub Actions. Por isso: só dispara de novo se a última execução
-// do workflow começou há mais de 5 minutos.
+// pg_cron, qualquer um que descobrir a URL poderia chamá-la em rajada. O
+// limite mínimo aqui é só pra evitar disparos redundantes muito próximos
+// (ex.: clique duplo), não é mais sobre economizar minutos.
 const GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN")!;
 const GITHUB_REPO = "cosmerafa-stack/coala-verifica";
 const GITHUB_WORKFLOW = "verificar-sefaz.yml";
-const INTERVALO_MINIMO_MIN = 5;
+const INTERVALO_MINIMO_MIN = 1;
 
 const headersGithub = {
   Authorization: `Bearer ${GITHUB_TOKEN}`,

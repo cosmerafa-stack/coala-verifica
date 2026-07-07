@@ -4,9 +4,17 @@ on:
   # O agendamento nativo do GitHub Actions ("schedule:") se mostrou nada
   # confiável — chegou a ficar mais de 10h sem disparar um job configurado pra
   # rodar a cada 30 min. Quem dispara esse workflow agora é o pg_cron do
-  # Supabase (função "disparar-verificacao-sefaz", a cada 30 min), que nunca
-  # falhou. workflow_dispatch fica só pra teste manual.
+  # Supabase (função "disparar-verificacao-sefaz", a cada 2 min desde que o
+  # repo ficou público), que nunca falhou. workflow_dispatch fica só pra teste
+  # manual.
   workflow_dispatch: {}
+
+concurrency:
+  # Repo público roda o runner Windows de graça, mas ainda assim não faz
+  # sentido ter duas checagens da mesma coisa rodando ao mesmo tempo — enfileira
+  # em vez de rodar em paralelo.
+  group: verificar-sefaz
+  cancel-in-progress: false
 
 jobs:
   verificar:

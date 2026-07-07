@@ -39,7 +39,7 @@ web/
   scripts/
     verificar-sefaz.ps1  # PowerShell — NFe/NFCe/CTe (disponibilidade, tempo de resposta, notas técnicas)
 .github/workflows/
-  verificar-sefaz.yml    # roda o .ps1 acima num runner windows-latest, a cada 30 min
+  verificar-sefaz.yml    # roda o .ps1 acima num runner windows-latest, a cada 2 min
 ```
 
 #### Por que duas fontes de verificação diferentes
@@ -55,21 +55,25 @@ Downdetector nunca foi portado pra nuvem — exige um navegador real pra passar 
 
 #### Quem dispara o workflow do GitHub Actions
 
-O agendamento nativo do GitHub (`schedule:` no `.yml`) se mostrou pouco confiável — chegou a ficar mais de 10h sem disparar um job configurado pra rodar a cada 30 min. Por isso o disparo agora vem do **pg_cron do Supabase** (o mesmo cron que já roda a Edge Function "verificar" sem nunca falhar):
+O agendamento nativo do GitHub (`schedule:` no `.yml`) se mostrou pouco confiável — chegou a ficar mais de 10h sem disparar um job configurado pra rodar a cada 30 min. Por isso o disparo vem do **pg_cron do Supabase** (o mesmo cron que já roda a Edge Function "verificar" sem nunca falhar):
 
-`pg_cron` (a cada 30 min) → Edge Function `disparar-verificacao-sefaz` → API do GitHub (`workflow_dispatch`) → roda `verificar-sefaz.ps1` no runner Windows.
+`pg_cron` (a cada 2 min) → Edge Function `disparar-verificacao-sefaz` → API do GitHub (`workflow_dispatch`) → roda `verificar-sefaz.ps1` no runner Windows.
 
 O token usado pra chamar a API do GitHub é o do `gh auth token` (guardado como secret `GITHUB_TOKEN` no Supabase). Se ele expirar/for revogado, gera um novo com `gh auth token` e roda `supabase secrets set GITHUB_TOKEN=<token>`.
 
-30 min é o intervalo escolhido pra caber no plano gratuito do GitHub (repo é privado, runner Windows conta 2x o minuto — 2000 min/mês grátis). Pra rodar mais rápido: repositório virar público (Actions ilimitado) ou habilitar cobrança na conta.
+**O repositório é público** (decisão tomada em 2026-07-07, pra detectar lentidão da Sefaz tão rápido quanto o monitor da Tecnospeed — com repo privado, 2 min de intervalo estouraria de longe o orçamento gratuito de minutos do GitHub Actions). Repo público = Actions ilimitado e grátis num runner Windows. Nenhuma credencial fica no código (tudo em secrets do GitHub/Supabase) — só a lógica do projeto ficou visível. O workflow tem `concurrency` pra enfileirar em vez de rodar em paralelo caso uma execução demore mais que 2 min.
 
-O script também tenta de novo (3x, com espera crescente) quando a conexão com `nfe.fazenda.gov.br`/`cte.fazenda.gov.br` falha — essa falha acontece de vez em quando mesmo do Windows, parece instabilidade pontual do lado deles.
+O botão "Atualizar agora" do site também chama a mesma function (com limite de 1 min entre disparos, só pra evitar duplo-clique — sem custo de minutos já que o repo é público).
+
+O script tenta de novo (2x, timeout curto) quando a conexão com `nfe.fazenda.gov.br`/`cte.fazenda.gov.br` falha — na prática isso costuma ser o IP do runner (Azure, muda a cada execução) caindo bloqueado dessa vez, não instabilidade passageira, então o retry é só uma rede de segurança rápida.
+
+O tempo de resposta é medido com "melhor de 2 tentativas" — o runner do GitHub não fica no Brasil, então a medição inclui latência de rede extra por cima do tempo real da Sefaz; pegar a mais rápida das duas reduz picos falsos de "muito lento" causados só por ruído de rede do runner.
 
 #### Contas/acessos usados
 
 - **Supabase**: projeto `coala-verifica` (ref `zzbhqsbfxbuvgjidpuss`), região `sa-east-1`. CLI já linkado (`supabase link` já rodado dentro de `web/`).
 - **Cloudflare Pages**: projeto `verificadorcoala`, conta `cosmerafa@gmail.com`. `wrangler` autenticado localmente.
-- **GitHub**: repo `cosmerafa-stack/coala-verifica` (privado). `gh` CLI autenticado, com escopo `workflow` liberado (precisou de `gh auth refresh -h github.com -s workflow` numa sessão anterior).
+- **GitHub**: repo `cosmerafa-stack/coala-verifica` (público desde 2026-07-07). `gh` CLI autenticado, com escopo `workflow` liberado (precisou de `gh auth refresh -h github.com -s workflow` numa sessão anterior).
 
 Se qualquer uma dessas ferramentas pedir login de novo numa sessão futura, é só rodar o comando de login pedido (`wrangler login`, `gh auth login`, `supabase login`) — geralmente abre o navegador pra autorizar.
 
@@ -93,5 +97,5 @@ gh run list --workflow "verificar-sefaz.yml" --limit 3
 ## Pendências conhecidas
 
 - Nada crítico em aberto no momento. Se a Sefaz/Fazenda um dia parar de derrubar clientes não-Windows, dá pra simplificar tudo de volta pra uma única Edge Function em Deno (o motivo de ter duas fontes deixa de existir).
-- O intervalo de 30 min do GitHub Actions pode ser reduzido se o repositório virar público (Actions ilimitado) ou se a conta habilitar cobrança.
 - A senha do site (`any@2019`) é só um portão client-side, não segurança de verdade.
+- Repositório é público — cuidado ao commitar qualquer coisa sensível (já foi conferido o histórico inteiro antes de tornar público, estava limpo).
