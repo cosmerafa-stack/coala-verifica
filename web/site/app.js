@@ -378,45 +378,43 @@ function aplicarIntervalo(ms) {
   setInterval(carregarNotas, ms);
 }
 
-// ---------- forçar atualização ----------
+// ---------- forçar atualização (desativado) ----------
 //
-// "Atualizar agora" não só reexibe o que já está no banco — dispara uma
-// checagem nova de verdade. MDFe/NFSe/SPED (Edge Function "verificar") são
-// rápidos e o resultado sai na hora. NFe/NFCe/CTe dependem do workflow do
-// GitHub Actions (runner Windows, ~30s pra rodar) e têm um limite de 1 min
-// entre disparos, só pra evitar disparo duplicado em cliques muito próximos
-// (o repo é público, então rodar o runner não tem custo).
-
-const botaoAtualizar = document.getElementById("botaoAtualizar");
-const mensagemAtualizar = document.getElementById("mensagemAtualizar");
-
-botaoAtualizar.addEventListener("click", async () => {
-  botaoAtualizar.disabled = true;
-  botaoAtualizar.textContent = "🔄 Verificando...";
-  mensagemAtualizar.textContent = "";
-
-  try {
-    const [resultadoVerificar, resultadoSefaz] = await Promise.all([
-      fetch(`${SUPABASE_URL}/functions/v1/verificar`, { method: "POST" }).then((r) => r.json()).catch(() => null),
-      fetch(`${SUPABASE_URL}/functions/v1/disparar-verificacao-sefaz`, { method: "POST" }).then((r) => r.json()).catch(() => null),
-    ]);
-
-    await Promise.all([carregarStatus(), carregarNotas()]);
-
-    const partes = [];
-    if (resultadoVerificar) partes.push(`MDFe/NFSe/SPED verificados agora (${resultadoVerificar.notas} notas conferidas)`);
-    if (resultadoSefaz?.disparado) partes.push("NFe/NFCe/CTe: verificação disparada, deve refletir em ~1 min");
-    else if (resultadoSefaz?.motivo) partes.push(`NFe/NFCe/CTe: ${resultadoSefaz.motivo}`);
-    mensagemAtualizar.textContent = partes.join(" · ");
-
-    if (resultadoSefaz?.disparado) {
-      setTimeout(() => { carregarStatus(); carregarNotas(); }, 45_000);
-    }
-  } finally {
-    botaoAtualizar.disabled = false;
-    botaoAtualizar.textContent = "🔄 Atualizar agora";
-  }
-});
+// Botão "Atualizar agora" comentado: com tudo já rodando automático a cada
+// 2 min (mesmo ritmo do Tecnospeed) e "Última verificação" mostrando o
+// horário, forçar não trazia dado mais fresco. Descomentar aqui e o bloco
+// correspondente em index.html (dentro de .topo-acoes) se precisar de volta.
+//
+// const botaoAtualizar = document.getElementById("botaoAtualizar");
+// const mensagemAtualizar = document.getElementById("mensagemAtualizar");
+//
+// botaoAtualizar.addEventListener("click", async () => {
+//   botaoAtualizar.disabled = true;
+//   botaoAtualizar.textContent = "🔄 Verificando...";
+//   mensagemAtualizar.textContent = "";
+//
+//   try {
+//     const [resultadoVerificar, resultadoSefaz] = await Promise.all([
+//       fetch(`${SUPABASE_URL}/functions/v1/verificar`, { method: "POST" }).then((r) => r.json()).catch(() => null),
+//       fetch(`${SUPABASE_URL}/functions/v1/disparar-verificacao-sefaz`, { method: "POST" }).then((r) => r.json()).catch(() => null),
+//     ]);
+//
+//     await Promise.all([carregarStatus(), carregarNotas()]);
+//
+//     const partes = [];
+//     if (resultadoVerificar) partes.push(`MDFe/NFSe/SPED verificados agora (${resultadoVerificar.notas} notas conferidas)`);
+//     if (resultadoSefaz?.disparado) partes.push("NFe/NFCe/CTe: verificação disparada, deve refletir em ~1 min");
+//     else if (resultadoSefaz?.motivo) partes.push(`NFe/NFCe/CTe: ${resultadoSefaz.motivo}`);
+//     mensagemAtualizar.textContent = partes.join(" · ");
+//
+//     if (resultadoSefaz?.disparado) {
+//       setTimeout(() => { carregarStatus(); carregarNotas(); }, 45_000);
+//     }
+//   } finally {
+//     botaoAtualizar.disabled = false;
+//     botaoAtualizar.textContent = "🔄 Atualizar agora";
+//   }
+// });
 
 // ---------- inicialização ----------
 
