@@ -119,8 +119,12 @@ async function carregarStatus() {
   }
 
   try {
+    // Janela deslizante de 1h: sempre "agora menos 1h" pra frente, então o
+    // ponto mais antigo vai saindo sozinho conforme o tempo passa, em vez de
+    // ficar preso num início fixo.
+    const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const pontos = await supabaseGet(
-      `resposta_tempo?documento=eq.${encodeURIComponent(documentoAtivo)}&select=*&order=verificado_em.desc&limit=120`
+      `resposta_tempo?documento=eq.${encodeURIComponent(documentoAtivo)}&verificado_em=gte.${umaHoraAtras}&select=*&order=verificado_em.desc&limit=120`
     );
     pontos.reverse();
     atualizarGrafico(pontos);
