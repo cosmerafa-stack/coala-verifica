@@ -32,6 +32,16 @@
 
 * { box-sizing: border-box; }
 
+.aviso-notificacao {
+  background: var(--fundo-cartao-alt);
+  border-bottom: 1px solid var(--amarelo);
+  color: var(--amarelo);
+  padding: 10px 32px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+.aviso-notificacao.oculta { display: none; }
+
 body {
   margin: 0;
   font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;

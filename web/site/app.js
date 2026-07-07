@@ -11,8 +11,19 @@ const SENHA_ACESSO = "any@2019";
 const CHAVE_SESSAO_SENHA = "coala-verifica-autenticado";
 
 function pedirPermissaoNotificacao() {
+  const aviso = document.getElementById("avisoNotificacaoBloqueada");
   if (typeof Notification === "undefined") return;
-  if (Notification.permission === "default") Notification.requestPermission();
+
+  if (Notification.permission === "default") {
+    Notification.requestPermission().then(() => pedirPermissaoNotificacao());
+    return;
+  }
+
+  // Depois de negada, o navegador não deixa mais mostrar o pop-up nativo de
+  // novo (proteção contra site insistindo) — só dá pra reverter manualmente
+  // nas configurações do site. Por isso, em vez de "perguntar de novo",
+  // mostra um aviso na tela lembrando de liberar manualmente.
+  aviso.classList.toggle("oculta", Notification.permission !== "denied");
 }
 
 function notificar(titulo, corpo) {
