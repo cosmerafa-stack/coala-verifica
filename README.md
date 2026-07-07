@@ -51,6 +51,8 @@ web/
 
 As notas técnicas de NFe/NFCe só trazem os "Documentos vigentes" da página oficial (o filtro exclui os "não vigentes" — isso já foi testado e confirmado).
 
+Tem uma terceira aba, "Manuais Técnicos" (MOC, anexos de leiaute, manuais de contingência etc.), na tabela `manuais_tecnicos` — mesma fonte (`listaConteudo.aspx`, portal NFe) e mesmo mecanismo de `notas_tecnicas`, só que sem filtro de vigência. A lógica de filtro/tabela do site é compartilhada entre as duas abas via `criarListaFiltravel()` em `app.js`.
+
 Downdetector nunca foi portado pra nuvem — exige um navegador real pra passar da proteção anti-robô, e isso só o app desktop consegue fazer.
 
 #### Quem dispara o workflow do GitHub Actions
