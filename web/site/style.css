@@ -162,7 +162,7 @@ body {
 }
 .aba-principal.ativa { color: var(--texto); border-bottom-color: var(--destaque); font-weight: 600; }
 
-main { padding: 20px 32px 40px; max-width: 1100px; margin: 0 auto; }
+main { padding: 20px 32px 40px; max-width: 1300px; margin: 0 auto; }
 
 .secao.oculta { display: none; }
 
@@ -193,6 +193,21 @@ main { padding: 20px 32px 40px; max-width: 1100px; margin: 0 auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borda); font-size: 0.9rem; }
 th { color: var(--texto-apagado); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
+
+/* Fonte enxuta, Título largo o bastante pra caber numa linha só na imensa
+   maioria dos casos ("..." só nos raros títulos bem longos), Do que se trata
+   com bastante espaço pra ler sem precisar de várias linhas. */
+.tabela-notas { table-layout: fixed; }
+.tabela-notas th:nth-child(1), .tabela-notas td:nth-child(1) { width: 7%; }
+.tabela-notas th:nth-child(2), .tabela-notas td:nth-child(2) {
+  width: 40%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tabela-notas th:nth-child(3), .tabela-notas td:nth-child(3) { width: 33%; }
+.tabela-notas th:nth-child(4), .tabela-notas td:nth-child(4) { width: 9%; }
+.tabela-notas th:nth-child(5), .tabela-notas td:nth-child(5) { width: 11%; }
 
 .status-ok { color: var(--destaque); font-weight: 700; }
 .status-instavel { color: var(--amarelo); font-weight: 700; }
@@ -267,7 +282,7 @@ th { color: var(--texto-apagado); font-weight: 600; font-size: 0.8rem; text-tran
 .filtros {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 10px;
   align-items: flex-end;
 }
 .filtros label {
@@ -285,6 +300,11 @@ th { color: var(--texto-apagado); font-weight: 600; font-size: 0.8rem; text-tran
   border-radius: 6px;
   font-size: 0.9rem;
 }
+/* Larguras enxutas pra tudo caber numa linha só, inclusive De/Até/Limpar filtros. */
+.filtros input[type="text"] { width: 130px; }
+.filtros select#filtroFonte { width: 130px; }
+.filtros select#filtroCampoData { width: 130px; }
+.filtros input[type="date"] { width: 130px; }
 .filtros button {
   background: var(--fundo-cartao-alt);
   border: 1px solid var(--borda);
@@ -293,6 +313,7 @@ th { color: var(--texto-apagado); font-weight: 600; font-size: 0.8rem; text-tran
   border-radius: 6px;
   cursor: pointer;
   height: fit-content;
+  white-space: nowrap;
 }
 .filtros button:hover { border-color: var(--destaque); }
 

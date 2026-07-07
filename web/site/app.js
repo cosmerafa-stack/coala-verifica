@@ -341,7 +341,7 @@ function aplicarFiltrosNotas() {
   corpo.innerHTML = filtradas.map((n) => `
     <tr>
       <td>${n.fonte}</td>
-      <td><a href="${n.url}" target="_blank" rel="noopener" style="color:inherit">${n.titulo}</a></td>
+      <td title="${n.titulo}"><a href="${n.url}" target="_blank" rel="noopener" style="color:inherit">${n.titulo}</a></td>
       <td>${n.descricao || "-"}</td>
       <td>${n.data_publicacao || "-"}</td>
       <td>${new Date(n.detectado_em).toLocaleString("pt-BR")}</td>
