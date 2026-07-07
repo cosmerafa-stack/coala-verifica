@@ -77,8 +77,9 @@ document.querySelectorAll(".aba-principal").forEach((botao) => {
     document.querySelectorAll(".aba-principal").forEach((b) => b.classList.remove("ativa"));
     botao.classList.add("ativa");
     const secao = botao.dataset.secao;
-    document.getElementById("secao-status").classList.toggle("oculta", secao !== "status");
-    document.getElementById("secao-notas").classList.toggle("oculta", secao !== "notas");
+    document.querySelectorAll("main > section.secao").forEach((s) => {
+      s.classList.toggle("oculta", s.id !== `secao-${secao}`);
+    });
   });
 });
 
@@ -277,97 +278,129 @@ async function atualizarStatusGeral() {
   }
 }
 
-// ---------- seção notas técnicas ----------
-
-let todasNotas = [];
-let idsNotasConhecidas = null; // null = ainda não temos uma leitura de referência
+// ---------- seções de lista filtrável (notas técnicas / manuais técnicos) ----------
+// Mesma estrutura pras duas: fonte/título/descrição/data_publicacao/url/detectado_em,
+// com os mesmos filtros e tabela — só muda a tabela do Supabase e os ids no DOM.
 
 // O monitor de mudança do SPED grava "Conteúdo da página atualizado (hash ...)"
 // pra saber quando algo mudou, mas isso não é uma nota técnica de verdade —
-// não deve aparecer nessa lista.
-function ehNotaTecnicaDeVerdade(nota) {
-  return !nota.titulo.startsWith("Conteúdo da página atualizado");
+// não deve aparecer na lista de notas técnicas.
+function ehNotaTecnicaDeVerdade(item) {
+  return !item.titulo.startsWith("Conteúdo da página atualizado");
 }
 
-async function carregarNotas() {
-  const todas = await supabaseGet("notas_tecnicas?select=*&order=detectado_em.desc&limit=1000");
-  todasNotas = todas.filter(ehNotaTecnicaDeVerdade);
+function criarListaFiltravel({ tabela, filtro, tituloNotificacao, ids }) {
+  let todosItens = [];
+  let idsConhecidos = null; // null = ainda não temos uma leitura de referência
 
-  const idsAtuais = new Set(todasNotas.map((n) => n.id));
-  if (idsNotasConhecidas) {
-    for (const n of todasNotas) {
-      if (!idsNotasConhecidas.has(n.id)) {
-        notificar("Verificador Coala — nova nota técnica", `${n.fonte}: ${n.titulo}`);
+  async function carregar() {
+    let itens = await supabaseGet(`${tabela}?select=*&order=detectado_em.desc&limit=1000`);
+    if (filtro) itens = itens.filter(filtro);
+    todosItens = itens;
+
+    const idsAtuais = new Set(todosItens.map((n) => n.id));
+    if (idsConhecidos) {
+      for (const n of todosItens) {
+        if (!idsConhecidos.has(n.id)) {
+          notificar(`Verificador Coala — ${tituloNotificacao}`, `${n.fonte}: ${n.titulo}`);
+        }
       }
     }
-  }
-  idsNotasConhecidas = idsAtuais;
+    idsConhecidos = idsAtuais;
 
-  const selectFonte = document.getElementById("filtroFonte");
-  const fontes = [...new Set(todasNotas.map((n) => n.fonte))].sort();
-  selectFonte.innerHTML = `<option value="">Todas as fontes</option>` + fontes.map((f) => `<option value="${f}">${f}</option>`).join("");
+    const selectFonte = document.getElementById(ids.fonte);
+    const fontes = [...new Set(todosItens.map((n) => n.fonte))].sort();
+    selectFonte.innerHTML = `<option value="">Todas as fontes</option>` + fontes.map((f) => `<option value="${f}">${f}</option>`).join("");
 
-  aplicarFiltrosNotas();
-}
-
-function aplicarFiltrosNotas() {
-  const fonte = document.getElementById("filtroFonte").value;
-  const titulo = document.getElementById("filtroTitulo").value.toLowerCase();
-  const assunto = document.getElementById("filtroAssunto").value.toLowerCase();
-  const campoData = document.getElementById("filtroCampoData").value;
-  const de = document.getElementById("filtroDe").value;
-  const ate = document.getElementById("filtroAte").value;
-
-  let filtradas = todasNotas;
-  if (fonte) filtradas = filtradas.filter((n) => n.fonte === fonte);
-  if (titulo) filtradas = filtradas.filter((n) => n.titulo.toLowerCase().includes(titulo));
-  if (assunto) filtradas = filtradas.filter((n) => (n.descricao || "").toLowerCase().includes(assunto));
-
-  if (de || ate) {
-    filtradas = filtradas.filter((n) => {
-      let dataStr = n[campoData];
-      if (!dataStr) return false;
-      let data;
-      if (campoData === "data_publicacao") {
-        const partes = dataStr.split("/");
-        if (partes.length !== 3) return false;
-        data = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
-      } else {
-        data = new Date(dataStr);
-      }
-      if (de && data < new Date(de)) return false;
-      if (ate && data > new Date(ate + "T23:59:59")) return false;
-      return true;
-    });
+    aplicarFiltros();
   }
 
-  const corpo = document.querySelector("#tabelaNotas tbody");
-  corpo.innerHTML = filtradas.map((n) => `
-    <tr>
-      <td>${n.fonte}</td>
-      <td title="${n.titulo}"><a href="${n.url}" target="_blank" rel="noopener" style="color:inherit">${n.titulo}</a></td>
-      <td>${n.descricao || "-"}</td>
-      <td>${n.data_publicacao || "-"}</td>
-      <td>${new Date(n.detectado_em).toLocaleString("pt-BR")}</td>
-    </tr>
-  `).join("");
+  function aplicarFiltros() {
+    const fonte = document.getElementById(ids.fonte).value;
+    const titulo = document.getElementById(ids.titulo).value.toLowerCase();
+    const assunto = document.getElementById(ids.assunto).value.toLowerCase();
+    const campoData = document.getElementById(ids.campoData).value;
+    const de = document.getElementById(ids.de).value;
+    const ate = document.getElementById(ids.ate).value;
 
-  document.getElementById("contagemNotas").textContent = `${filtradas.length} de ${todasNotas.length} item(ns)`;
+    let filtrados = todosItens;
+    if (fonte) filtrados = filtrados.filter((n) => n.fonte === fonte);
+    if (titulo) filtrados = filtrados.filter((n) => n.titulo.toLowerCase().includes(titulo));
+    if (assunto) filtrados = filtrados.filter((n) => (n.descricao || "").toLowerCase().includes(assunto));
+
+    if (de || ate) {
+      filtrados = filtrados.filter((n) => {
+        let dataStr = n[campoData];
+        if (!dataStr) return false;
+        let data;
+        if (campoData === "data_publicacao") {
+          const partes = dataStr.split("/");
+          if (partes.length !== 3) return false;
+          data = new Date(`${partes[2]}-${partes[1]}-${partes[0]}`);
+        } else {
+          data = new Date(dataStr);
+        }
+        if (de && data < new Date(de)) return false;
+        if (ate && data > new Date(ate + "T23:59:59")) return false;
+        return true;
+      });
+    }
+
+    const corpo = document.querySelector(`#${ids.tabela} tbody`);
+    corpo.innerHTML = filtrados.map((n) => `
+      <tr>
+        <td>${n.fonte}</td>
+        <td title="${n.titulo}"><a href="${n.url}" target="_blank" rel="noopener" style="color:inherit">${n.titulo}</a></td>
+        <td>${n.descricao || "-"}</td>
+        <td>${n.data_publicacao || "-"}</td>
+        <td>${new Date(n.detectado_em).toLocaleString("pt-BR")}</td>
+      </tr>
+    `).join("");
+
+    document.getElementById(ids.contagem).textContent = `${filtrados.length} de ${todosItens.length} item(ns)`;
+  }
+
+  [ids.fonte, ids.titulo, ids.assunto, ids.campoData, ids.de, ids.ate].forEach((id) => {
+    document.getElementById(id).addEventListener("input", aplicarFiltros);
+  });
+
+  document.getElementById(ids.btnLimpar).addEventListener("click", () => {
+    document.getElementById(ids.fonte).value = "";
+    document.getElementById(ids.titulo).value = "";
+    document.getElementById(ids.assunto).value = "";
+    document.getElementById(ids.campoData).value = "data_publicacao";
+    document.getElementById(ids.de).value = "";
+    document.getElementById(ids.ate).value = "";
+    aplicarFiltros();
+  });
+
+  return { carregar };
 }
 
-["filtroFonte", "filtroTitulo", "filtroAssunto", "filtroCampoData", "filtroDe", "filtroAte"].forEach((id) => {
-  document.getElementById(id).addEventListener("input", aplicarFiltrosNotas);
+const listaNotas = criarListaFiltravel({
+  tabela: "notas_tecnicas",
+  filtro: ehNotaTecnicaDeVerdade,
+  tituloNotificacao: "nova nota técnica",
+  ids: {
+    fonte: "filtroFonte", titulo: "filtroTitulo", assunto: "filtroAssunto",
+    campoData: "filtroCampoData", de: "filtroDe", ate: "filtroAte",
+    btnLimpar: "btnLimparFiltros", contagem: "contagemNotas", tabela: "tabelaNotas",
+  },
 });
 
-document.getElementById("btnLimparFiltros").addEventListener("click", () => {
-  document.getElementById("filtroFonte").value = "";
-  document.getElementById("filtroTitulo").value = "";
-  document.getElementById("filtroAssunto").value = "";
-  document.getElementById("filtroCampoData").value = "data_publicacao";
-  document.getElementById("filtroDe").value = "";
-  document.getElementById("filtroAte").value = "";
-  aplicarFiltrosNotas();
+const listaManuais = criarListaFiltravel({
+  tabela: "manuais_tecnicos",
+  filtro: null,
+  tituloNotificacao: "novo manual técnico",
+  ids: {
+    fonte: "filtroFonteManuais", titulo: "filtroTituloManuais", assunto: "filtroAssuntoManuais",
+    campoData: "filtroCampoDataManuais", de: "filtroDeManuais", ate: "filtroAteManuais",
+    btnLimpar: "btnLimparFiltrosManuais", contagem: "contagemManuais", tabela: "tabelaManuais",
+  },
 });
+
+async function carregarNotas() { await listaNotas.carregar(); }
+async function carregarManuais() { await listaManuais.carregar(); }
 
 // ---------- intervalo de atualização ----------
 //
@@ -380,6 +413,7 @@ const INTERVALO_ATUALIZACAO_MS = 120_000;
 function aplicarIntervalo(ms) {
   setInterval(carregarStatus, ms);
   setInterval(carregarNotas, ms);
+  setInterval(carregarManuais, ms);
 }
 
 // ---------- forçar atualização (desativado) ----------
@@ -424,4 +458,5 @@ function aplicarIntervalo(ms) {
 
 carregarStatus();
 carregarNotas();
+carregarManuais();
 aplicarIntervalo(INTERVALO_ATUALIZACAO_MS);

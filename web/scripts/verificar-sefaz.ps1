@@ -11,11 +11,16 @@ $SUPABASE_SERVICE_ROLE_KEY = $env:SUPABASE_SERVICE_ROLE_KEY
 
 $erros = New-Object System.Collections.Generic.List[string]
 $totalNotas = 0
+$totalManuais = 0
 $totalDisponibilidade = 0
 $totalResposta = 0
 
 function Limpar-Espacos([string]$texto) {
   return ($texto -replace '\s+', ' ').Trim()
+}
+
+function Decodificar-EntidadesHtml([string]$texto) {
+  return $texto -replace '&gt;', '>' -replace '&lt;', '<' -replace '&quot;', '"' -replace '&#39;', "'" -replace '&amp;', '&'
 }
 
 # A conexão com nfe.fazenda.gov.br/cte.fazenda.gov.br falha às vezes com "Unable
@@ -72,9 +77,9 @@ function Enviar-Supabase([string]$caminho, [string]$corpoJson, [string]$prefer) 
   }
 }
 
-function Enviar-NotasTecnicas($linhas) {
+function Enviar-Itens([string]$tabela, $linhas) {
   if ($linhas.Count -eq 0) { return }
-  Enviar-Supabase "notas_tecnicas?on_conflict=fonte,titulo,url" (ConvertTo-JsonArray $linhas) "resolution=ignore-duplicates,return=minimal"
+  Enviar-Supabase "$tabela`?on_conflict=fonte,titulo,url" (ConvertTo-JsonArray $linhas) "resolution=ignore-duplicates,return=minimal"
 }
 
 function Enviar-Disponibilidade($linhas) {
@@ -86,23 +91,27 @@ function Enviar-RespostaTempo($linha) {
   Enviar-Supabase "resposta_tempo" (ConvertTo-JsonArray @($linha)) "return=minimal"
 }
 
-# ---------- notas técnicas: NFe/NFCe e CTe (listaConteudo.aspx) ----------
+# ---------- listaConteudo.aspx genérico: notas técnicas e manuais ----------
+# NFe/NFCe, CTe e os manuais técnicos usam a mesma página/formato
+# (listaConteudo.aspx?tipoConteudo=...), só muda a tabela de destino e se tem
+# ou não a separação "Documentos vigentes" / "não vigentes".
 
-function Verificar-ListaConteudo([string]$nome, [string]$baseUrl, [string]$listaUrl) {
+function Verificar-ListaConteudo([string]$nome, [string]$baseUrl, [string]$listaUrl, [string]$tabela, [bool]$filtrarVigente, [ref]$contador) {
   try {
     $resp = Invoke-WebRequestComRetry $listaUrl
     $html = $resp.Content
 
-    # NFe/NFCe separa "Documentos vigentes" de "Documentos não vigentes"; só
-    # interessa a seção de vigentes. CTe não tem essa divisão (pega tudo).
     $escopo = $html
-    $idxVigentes = $html.IndexOf("Documentos vigentes")
-    if ($idxVigentes -ge 0) {
-      $idxNaoVigentes = $html.IndexOf("Documentos não vigentes", $idxVigentes)
-      if ($idxNaoVigentes -ge 0) {
-        $escopo = $html.Substring($idxVigentes, $idxNaoVigentes - $idxVigentes)
-      } else {
-        $escopo = $html.Substring($idxVigentes)
+    if ($filtrarVigente) {
+      # Só a seção de "Documentos vigentes" — exclui os "não vigentes".
+      $idxVigentes = $html.IndexOf("Documentos vigentes")
+      if ($idxVigentes -ge 0) {
+        $idxNaoVigentes = $html.IndexOf("Documentos não vigentes", $idxVigentes)
+        if ($idxNaoVigentes -ge 0) {
+          $escopo = $html.Substring($idxVigentes, $idxNaoVigentes - $idxVigentes)
+        } else {
+          $escopo = $html.Substring($idxVigentes)
+        }
       }
     }
 
@@ -113,9 +122,9 @@ function Verificar-ListaConteudo([string]$nome, [string]$baseUrl, [string]$lista
     $linhas = @()
     foreach ($m in $matches) {
       $href = $m.Groups[1].Value
-      $titulo = Limpar-Espacos ($m.Groups[2].Value -replace '&amp;', '&')
+      $titulo = Limpar-Espacos (Decodificar-EntidadesHtml $m.Groups[2].Value)
       $descricaoBruta = $m.Groups[3].Value -replace '<[^>]+>', ' '
-      $descricao = Limpar-Espacos $descricaoBruta
+      $descricao = Limpar-Espacos (Decodificar-EntidadesHtml $descricaoBruta)
       if ($descricao.Length -gt 220) { $descricao = $descricao.Substring(0, 220).Trim() + "..." }
 
       $dataMatch = [regex]::Match($titulo, '(\d{2}/\d{2}/\d{4})')
@@ -131,8 +140,8 @@ function Verificar-ListaConteudo([string]$nome, [string]$baseUrl, [string]$lista
     }
 
     if ($linhas.Count -gt 0) {
-      Enviar-NotasTecnicas $linhas
-      $script:totalNotas += $linhas.Count
+      Enviar-Itens $tabela $linhas
+      $contador.Value += $linhas.Count
     }
   } catch {
     $erros.Add("$nome`: $($_.Exception.Message)")
@@ -259,11 +268,14 @@ Verificar-Resposta "NFe" "https://nfe.sefaz.ba.gov.br/webservices/NFeStatusServi
 Verificar-Resposta "NFCe" "https://nfe.sefaz.ba.gov.br/webservices/NFeStatusServico4/NFeStatusServico4.asmx"
 Verificar-Resposta "CTe" "https://cte.svrs.rs.gov.br/ws/CTeStatusServicoV4/CTeStatusServicoV4.asmx"
 
-Verificar-ListaConteudo "NFe/NFCe" "https://www.nfe.fazenda.gov.br/portal/" "https://www.nfe.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=04BIflQt1aY="
-Verificar-ListaConteudo "CTe" "https://www.cte.fazenda.gov.br/portal/" "https://www.cte.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=Y0nErnoZpsg="
+Verificar-ListaConteudo "NFe/NFCe" "https://www.nfe.fazenda.gov.br/portal/" "https://www.nfe.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=04BIflQt1aY=" "notas_tecnicas" $true ([ref]$totalNotas)
+Verificar-ListaConteudo "CTe" "https://www.cte.fazenda.gov.br/portal/" "https://www.cte.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=Y0nErnoZpsg=" "notas_tecnicas" $false ([ref]$totalNotas)
+
+Verificar-ListaConteudo "NFe/NFCe" "https://www.nfe.fazenda.gov.br/portal/" "https://www.nfe.fazenda.gov.br/portal/listaConteudo.aspx?tipoConteudo=ndIjl+iEFdE=" "manuais_tecnicos" $false ([ref]$totalManuais)
 
 $resultado = [ordered]@{
   notas           = $totalNotas
+  manuais         = $totalManuais
   disponibilidade = $totalDisponibilidade
   resposta        = $totalResposta
   erros           = $erros

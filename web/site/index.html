@@ -52,6 +52,7 @@
   <nav class="abas-principais">
     <button class="aba-principal ativa" data-secao="status">Status Sefaz</button>
     <button class="aba-principal" data-secao="notas">Notas Técnicas</button>
+    <button class="aba-principal" data-secao="manuais">Manuais Técnicos</button>
   </nav>
 
   <main>
@@ -122,6 +123,42 @@
 
       <div class="cartao">
         <table class="tabela-notas" id="tabelaNotas">
+          <thead>
+            <tr><th>Fonte</th><th>Título</th><th>Do que se trata</th><th>Publicada em</th><th>Detectada em</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="secao-manuais" class="secao oculta">
+      <div class="cartao">
+        <h2>Filtros</h2>
+        <div class="filtros">
+          <label>Fonte
+            <select id="filtroFonteManuais"><option value="">Todas as fontes</option></select>
+          </label>
+          <label>Título contém
+            <input type="text" id="filtroTituloManuais" placeholder="ex: contingência" />
+          </label>
+          <label>Do que se trata contém
+            <input type="text" id="filtroAssuntoManuais" placeholder="ex: leiaute" />
+          </label>
+          <label>Filtrar data por
+            <select id="filtroCampoDataManuais">
+              <option value="data_publicacao" selected>Data publicada</option>
+              <option value="detectado_em">Data detectada</option>
+            </select>
+          </label>
+          <label>De <input type="date" id="filtroDeManuais" /></label>
+          <label>Até <input type="date" id="filtroAteManuais" /></label>
+          <button id="btnLimparFiltrosManuais">Limpar filtros</button>
+        </div>
+        <p class="texto-apagado" id="contagemManuais"></p>
+      </div>
+
+      <div class="cartao">
+        <table class="tabela-notas" id="tabelaManuais">
           <thead>
             <tr><th>Fonte</th><th>Título</th><th>Do que se trata</th><th>Publicada em</th><th>Detectada em</th></tr>
           </thead>
