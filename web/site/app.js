@@ -366,25 +366,17 @@ document.getElementById("btnLimparFiltros").addEventListener("click", () => {
 });
 
 // ---------- intervalo de atualização ----------
+//
+// Fixo em 2 min — o mesmo ritmo em que o backend verifica todas as fontes,
+// então não faz sentido deixar configurável pra mais devagar (só atrasaria a
+// exibição) nem mais rápido (não teria dado novo pra mostrar).
 
-const CHAVE_INTERVALO = "coala-verifica-intervalo";
-let temporizadorStatus = null;
-let temporizadorNotas = null;
+const INTERVALO_ATUALIZACAO_MS = 120_000;
 
 function aplicarIntervalo(ms) {
-  if (temporizadorStatus) clearInterval(temporizadorStatus);
-  if (temporizadorNotas) clearInterval(temporizadorNotas);
-  temporizadorStatus = setInterval(carregarStatus, ms);
-  temporizadorNotas = setInterval(carregarNotas, ms);
-  localStorage.setItem(CHAVE_INTERVALO, String(ms));
+  setInterval(carregarStatus, ms);
+  setInterval(carregarNotas, ms);
 }
-
-const seletorIntervalo = document.getElementById("intervaloAtualizacao");
-const intervaloSalvo = localStorage.getItem(CHAVE_INTERVALO);
-if (intervaloSalvo && seletorIntervalo.querySelector(`option[value="${intervaloSalvo}"]`)) {
-  seletorIntervalo.value = intervaloSalvo;
-}
-seletorIntervalo.addEventListener("change", () => aplicarIntervalo(Number(seletorIntervalo.value)));
 
 // ---------- forçar atualização ----------
 //
@@ -430,4 +422,4 @@ botaoAtualizar.addEventListener("click", async () => {
 
 carregarStatus();
 carregarNotas();
-aplicarIntervalo(Number(seletorIntervalo.value));
+aplicarIntervalo(INTERVALO_ATUALIZACAO_MS);
