@@ -129,6 +129,32 @@ async function carregarStatus() {
   }
 
   await atualizarStatusGeral();
+  await atualizarDowndetector();
+}
+
+async function atualizarDowndetector() {
+  const bolinha = document.getElementById("bolinhaDowndetector");
+  const resumo = document.getElementById("downdetectorResumo");
+  const lista = document.getElementById("downdetectorComentarios");
+  try {
+    const registros = await supabaseGet("downdetector_status?select=*&order=verificado_em.desc&limit=1");
+    if (registros.length === 0) {
+      bolinha.className = "bolinha";
+      resumo.textContent = "Sem dados no momento — o Downdetector exige um navegador real para ser consultado (proteção anti-robô), disponível apenas no app desktop.";
+      lista.innerHTML = "";
+      return;
+    }
+
+    const [status] = registros;
+    bolinha.className = "bolinha " + (status.problema_detectado ? "problema" : "ok");
+    const hora = new Date(status.verificado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    resumo.textContent = `${status.resumo} (verificado às ${hora})`;
+
+    const comentarios = Array.isArray(status.comentarios_bahia) ? status.comentarios_bahia : [];
+    lista.innerHTML = comentarios.map((c) => `<li>${typeof c === "string" ? c : (c.texto || JSON.stringify(c))}</li>`).join("");
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 function preencherTabelaServicos(servicos) {

@@ -200,6 +200,23 @@ th { color: var(--texto-apagado); font-weight: 600; font-size: 0.8rem; text-tran
 
 .grafico-container { background: var(--fundo-grafico); border-radius: 8px; padding: 12px; }
 
+.downdetector-status { display: flex; align-items: center; gap: 10px; }
+.lista-comentarios {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lista-comentarios li {
+  background: var(--fundo-cartao-alt);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
 .portao-senha {
   position: fixed;
   inset: 0;

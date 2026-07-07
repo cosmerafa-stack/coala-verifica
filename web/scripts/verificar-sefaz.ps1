@@ -18,19 +18,22 @@ function Limpar-Espacos([string]$texto) {
   return ($texto -replace '\s+', ' ').Trim()
 }
 
-# A conexão com nfe.fazenda.gov.br/cte.fazenda.gov.br falha de vez em quando
-# mesmo do Windows ("Unable to connect to the remote server") — parece
-# instabilidade pontual do lado deles, não bloqueio. Tenta de novo antes de
-# desistir. Não retenta em cima de uma resposta HTTP de erro (403 etc.) — isso
-# não é falha de rede, é resposta legítima do servidor.
-function Invoke-WebRequestComRetry([string]$uri, [int]$timeoutSec, [int]$tentativas = 3) {
+# A conexão com nfe.fazenda.gov.br/cte.fazenda.gov.br falha às vezes com "Unable
+# to connect to the remote server" — não é instabilidade passageira, é o IP do
+# runner do GitHub (Azure, muda a cada execução) caindo numa faixa bloqueada
+# pela Fazenda dessa vez. Tentar de novo NO MESMO IP não resolve, então o retry
+# aqui é só uma rede de segurança rápida (timeout curto, poucas tentativas) —
+# se a execução inteira falhar, a próxima (com outro IP) tende a funcionar.
+# Não retenta em cima de uma resposta HTTP de erro (403 etc.): isso não é falha
+# de rede, é resposta legítima do servidor.
+function Invoke-WebRequestComRetry([string]$uri, [int]$timeoutSec = 12, [int]$tentativas = 2) {
   for ($i = 1; $i -le $tentativas; $i++) {
     try {
       return Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec $timeoutSec
     } catch {
       if ($_.Exception.Response) { throw }
       if ($i -eq $tentativas) { throw }
-      Start-Sleep -Seconds (2 * $i)
+      Start-Sleep -Seconds 2
     }
   }
 }
@@ -87,7 +90,7 @@ function Enviar-RespostaTempo($linha) {
 
 function Verificar-ListaConteudo([string]$nome, [string]$baseUrl, [string]$listaUrl) {
   try {
-    $resp = Invoke-WebRequestComRetry $listaUrl 30
+    $resp = Invoke-WebRequestComRetry $listaUrl
     $html = $resp.Content
 
     # NFe/NFCe separa "Documentos vigentes" de "Documentos não vigentes"; só
@@ -140,7 +143,7 @@ function Verificar-ListaConteudo([string]$nome, [string]$baseUrl, [string]$lista
 
 function Verificar-Disponibilidade([string]$documento, [string]$url, [string]$linhaChave) {
   try {
-    $resp = Invoke-WebRequestComRetry $url 30
+    $resp = Invoke-WebRequestComRetry $url
     $html = $resp.Content
 
     $idxTabela = $html.IndexOf("gdvDisponibilidade")
@@ -250,3 +253,4 @@ $resultado = [ordered]@{
 $resultado | ConvertTo-Json -Depth 5
 
 if ($erros.Count -gt 0) { exit 1 }
+
