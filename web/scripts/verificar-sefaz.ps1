@@ -203,12 +203,12 @@ function Registrar-Resposta([string]$documento, [double]$segundos, [int]$statusC
   $script:totalResposta += 1
 }
 
-function Verificar-Resposta([string]$documento, [string]$url) {
+function Medir-UmaTentativa([string]$url) {
   $cronometro = [System.Diagnostics.Stopwatch]::StartNew()
   try {
     $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 35
     $cronometro.Stop()
-    Registrar-Resposta $documento $cronometro.Elapsed.TotalSeconds ([int]$resp.StatusCode)
+    return [ordered]@{ sucesso = $true; segundos = $cronometro.Elapsed.TotalSeconds; statusCode = [int]$resp.StatusCode }
   } catch {
     $cronometro.Stop()
     $segundos = $cronometro.Elapsed.TotalSeconds
@@ -218,17 +218,35 @@ function Verificar-Resposta([string]$documento, [string]$url) {
       # digital — esperado nesses webservices sem operação de negócio real). O
       # tempo até a resposta chegar já indica se o servidor está de pé, no mesmo
       # espírito do app desktop original.
-      Registrar-Resposta $documento $segundos ([int]$respostaHttp.StatusCode)
-    } else {
-      $nivel = if ($segundos -ge 30) { "Timeout" } else { "Erro" }
-      Enviar-RespostaTempo ([ordered]@{
-        documento = $documento
-        nivel     = $nivel
-        segundos  = $(if ($nivel -eq "Erro") { $null } else { $segundos })
-        detalhe   = "Falha de conexão: $($_.Exception.Message)"
-      })
-      $script:totalResposta += 1
+      return [ordered]@{ sucesso = $true; segundos = $segundos; statusCode = [int]$respostaHttp.StatusCode }
     }
+    return [ordered]@{ sucesso = $false; segundos = $segundos; erro = $_.Exception.Message }
+  }
+}
+
+# O runner do GitHub Actions não fica no Brasil, então o tempo medido inclui a
+# viagem de ida e volta até lá fora — uma variação de rede pontual naquele
+# runner específico pode parecer "Sefaz lenta" sem ter nada a ver com o
+# servidor. Faz 2 tentativas rápidas e fica com a mais rápida das que tiveram
+# sucesso, pra reduzir esse ruído (o pior caso real da Sefaz continua sendo
+# capturado se as duas tentativas vierem lentas).
+function Verificar-Resposta([string]$documento, [string]$url) {
+  $tentativas = 1, 2 | ForEach-Object { Medir-UmaTentativa $url }
+  $sucessos = $tentativas | Where-Object { $_.sucesso }
+
+  if ($sucessos.Count -gt 0) {
+    $melhor = $sucessos | Sort-Object segundos | Select-Object -First 1
+    Registrar-Resposta $documento $melhor.segundos $melhor.statusCode
+  } else {
+    $pior = $tentativas | Sort-Object segundos | Select-Object -First 1
+    $nivel = if ($pior.segundos -ge 30) { "Timeout" } else { "Erro" }
+    Enviar-RespostaTempo ([ordered]@{
+      documento = $documento
+      nivel     = $nivel
+      segundos  = $(if ($nivel -eq "Erro") { $null } else { $pior.segundos })
+      detalhe   = "Falha de conexão: $($pior.erro)"
+    })
+    $script:totalResposta += 1
   }
 }
 
