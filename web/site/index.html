@@ -32,6 +32,7 @@
       </div>
     </div>
     <div class="topo-acoes">
+      <button class="botao-atualizar" id="botaoAtualizar" title="Forçar atualização agora">🔄 Atualizar agora</button>
       <label class="seletor-intervalo">Atualizar a cada
         <select id="intervaloAtualizacao">
           <option value="60000">1 minuto</option>
@@ -72,6 +73,13 @@
 
       <div class="cartao">
         <h2>Tempo de resposta do webservice <small>(amostrado a cada verificação, ~2 min)</small></h2>
+        <div class="legenda-grafico">
+          <span class="legenda-item"><span class="legenda-cor" style="background:#5eb1fa"></span>Normal: até 2s</span>
+          <span class="legenda-item"><span class="legenda-cor" style="background:#e6c83c"></span>Lento: até 5s</span>
+          <span class="legenda-item"><span class="legenda-cor" style="background:#e68c28"></span>Muito lento: até 30s</span>
+          <span class="legenda-item"><span class="legenda-cor" style="background:#dc4646"></span>Timeout: acima de 30s</span>
+          <span class="legenda-item"><span class="legenda-cor" style="background:#9632a0"></span>Erro de conexão</span>
+        </div>
         <div class="grafico-container">
           <canvas id="graficoResposta" height="90"></canvas>
         </div>

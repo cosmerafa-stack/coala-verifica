@@ -18,6 +18,23 @@ function Limpar-Espacos([string]$texto) {
   return ($texto -replace '\s+', ' ').Trim()
 }
 
+# A conexão com nfe.fazenda.gov.br/cte.fazenda.gov.br falha de vez em quando
+# mesmo do Windows ("Unable to connect to the remote server") — parece
+# instabilidade pontual do lado deles, não bloqueio. Tenta de novo antes de
+# desistir. Não retenta em cima de uma resposta HTTP de erro (403 etc.) — isso
+# não é falha de rede, é resposta legítima do servidor.
+function Invoke-WebRequestComRetry([string]$uri, [int]$timeoutSec, [int]$tentativas = 3) {
+  for ($i = 1; $i -le $tentativas; $i++) {
+    try {
+      return Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec $timeoutSec
+    } catch {
+      if ($_.Exception.Response) { throw }
+      if ($i -eq $tentativas) { throw }
+      Start-Sleep -Seconds (2 * $i)
+    }
+  }
+}
+
 # ConvertTo-Json (Windows PowerShell 5.1) desembrulha arrays de 1 elemento num
 # objeto solto em vez de manter "[...]" — monta o array JSON manualmente pra
 # funcionar igual em PS 5.1 e PowerShell 7 (pwsh).
@@ -70,7 +87,7 @@ function Enviar-RespostaTempo($linha) {
 
 function Verificar-ListaConteudo([string]$nome, [string]$baseUrl, [string]$listaUrl) {
   try {
-    $resp = Invoke-WebRequest -Uri $listaUrl -UseBasicParsing -TimeoutSec 30
+    $resp = Invoke-WebRequestComRetry $listaUrl 30
     $html = $resp.Content
 
     # NFe/NFCe separa "Documentos vigentes" de "Documentos não vigentes"; só
@@ -123,7 +140,7 @@ function Verificar-ListaConteudo([string]$nome, [string]$baseUrl, [string]$lista
 
 function Verificar-Disponibilidade([string]$documento, [string]$url, [string]$linhaChave) {
   try {
-    $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30
+    $resp = Invoke-WebRequestComRetry $url 30
     $html = $resp.Content
 
     $idxTabela = $html.IndexOf("gdvDisponibilidade")

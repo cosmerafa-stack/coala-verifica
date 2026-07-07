@@ -1,13 +1,11 @@
 name: Verificar Sefaz-BA / NFe / CTe
 
 on:
-  # A cada 30 min. O runner windows-latest consome minutos do plano gratuito do
-  # GitHub (2000 min/mês, com multiplicador 2x pra Windows — repositório é
-  # privado). Nessa cadência dá ~1440 min/mês faturados, dentro do limite grátis
-  # com folga. Pra rodar mais rápido, ou o repositório vira público (Actions
-  # ilimitado) ou é preciso habilitar cobrança na conta do GitHub.
-  schedule:
-    - cron: "*/30 * * * *"
+  # O agendamento nativo do GitHub Actions ("schedule:") se mostrou nada
+  # confiável — chegou a ficar mais de 10h sem disparar um job configurado pra
+  # rodar a cada 30 min. Quem dispara esse workflow agora é o pg_cron do
+  # Supabase (função "disparar-verificacao-sefaz", a cada 30 min), que nunca
+  # falhou. workflow_dispatch fica só pra teste manual.
   workflow_dispatch: {}
 
 jobs:

@@ -77,6 +77,38 @@ body {
 }
 .botao-tema:hover { border-color: var(--destaque); }
 
+.botao-atualizar {
+  background: var(--fundo-cartao-alt);
+  border: 1px solid var(--borda);
+  color: var(--texto);
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.botao-atualizar:hover { border-color: var(--destaque); }
+.botao-atualizar:disabled { opacity: 0.6; cursor: default; }
+
+.legenda-grafico {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+.legenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--texto-apagado);
+}
+.legenda-cor {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
 .botao-sair {
   background: var(--fundo-cartao-alt);
   border: 1px solid var(--borda);

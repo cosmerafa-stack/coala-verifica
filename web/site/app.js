@@ -237,8 +237,16 @@ async function atualizarStatusGeral() {
 let todasNotas = [];
 let idsNotasConhecidas = null; // null = ainda não temos uma leitura de referência
 
+// O monitor de mudança do SPED grava "Conteúdo da página atualizado (hash ...)"
+// pra saber quando algo mudou, mas isso não é uma nota técnica de verdade —
+// não deve aparecer nessa lista.
+function ehNotaTecnicaDeVerdade(nota) {
+  return !nota.titulo.startsWith("Conteúdo da página atualizado");
+}
+
 async function carregarNotas() {
-  todasNotas = await supabaseGet("notas_tecnicas?select=*&order=detectado_em.desc&limit=1000");
+  const todas = await supabaseGet("notas_tecnicas?select=*&order=detectado_em.desc&limit=1000");
+  todasNotas = todas.filter(ehNotaTecnicaDeVerdade);
 
   const idsAtuais = new Set(todasNotas.map((n) => n.id));
   if (idsNotasConhecidas) {
@@ -336,6 +344,20 @@ if (intervaloSalvo && seletorIntervalo.querySelector(`option[value="${intervaloS
   seletorIntervalo.value = intervaloSalvo;
 }
 seletorIntervalo.addEventListener("change", () => aplicarIntervalo(Number(seletorIntervalo.value)));
+
+// ---------- forçar atualização ----------
+
+const botaoAtualizar = document.getElementById("botaoAtualizar");
+botaoAtualizar.addEventListener("click", async () => {
+  botaoAtualizar.disabled = true;
+  botaoAtualizar.textContent = "🔄 Atualizando...";
+  try {
+    await Promise.all([carregarStatus(), carregarNotas()]);
+  } finally {
+    botaoAtualizar.disabled = false;
+    botaoAtualizar.textContent = "🔄 Atualizar agora";
+  }
+});
 
 // ---------- inicialização ----------
 

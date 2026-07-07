@@ -47,11 +47,23 @@ web/
 `nfe.fazenda.gov.br`, `cte.fazenda.gov.br` e `sefaz.ba.gov.br` derrubam a conexão de clientes HTTP não-Windows (Deno, Node, curl com OpenSSL) — provavelmente fingerprint de TLS (JA3), não bloqueio de IP. O stack nativo do Windows (Schannel, usado por `Invoke-WebRequest`/.NET — e por isso o app desktop em C# sempre funcionou) passa normal. Por isso:
 
 - **Supabase Edge Function** (`verificar`, Deno) cobre só o que funciona nessa rede: MDFe (SVRS), NFSe Nacional, SPED. Agendada via `pg_cron` a cada 2 min.
-- **GitHub Actions em `windows-latest`** (PowerShell) cobre NFe/NFCe/CTe, que precisam do Schannel. Agendada a cada 30 min (intervalo escolhido pra caber no plano gratuito do GitHub — repo é privado, runner Windows conta 2x o minuto).
+- **GitHub Actions em `windows-latest`** (PowerShell, `web/scripts/verificar-sefaz.ps1`) cobre NFe/NFCe/CTe, que precisam do Schannel.
 
 As notas técnicas de NFe/NFCe só trazem os "Documentos vigentes" da página oficial (o filtro exclui os "não vigentes" — isso já foi testado e confirmado).
 
 Downdetector nunca foi portado pra nuvem — exige um navegador real pra passar da proteção anti-robô, e isso só o app desktop consegue fazer.
+
+#### Quem dispara o workflow do GitHub Actions
+
+O agendamento nativo do GitHub (`schedule:` no `.yml`) se mostrou pouco confiável — chegou a ficar mais de 10h sem disparar um job configurado pra rodar a cada 30 min. Por isso o disparo agora vem do **pg_cron do Supabase** (o mesmo cron que já roda a Edge Function "verificar" sem nunca falhar):
+
+`pg_cron` (a cada 30 min) → Edge Function `disparar-verificacao-sefaz` → API do GitHub (`workflow_dispatch`) → roda `verificar-sefaz.ps1` no runner Windows.
+
+O token usado pra chamar a API do GitHub é o do `gh auth token` (guardado como secret `GITHUB_TOKEN` no Supabase). Se ele expirar/for revogado, gera um novo com `gh auth token` e roda `supabase secrets set GITHUB_TOKEN=<token>`.
+
+30 min é o intervalo escolhido pra caber no plano gratuito do GitHub (repo é privado, runner Windows conta 2x o minuto — 2000 min/mês grátis). Pra rodar mais rápido: repositório virar público (Actions ilimitado) ou habilitar cobrança na conta.
+
+O script também tenta de novo (3x, com espera crescente) quando a conexão com `nfe.fazenda.gov.br`/`cte.fazenda.gov.br` falha — essa falha acontece de vez em quando mesmo do Windows, parece instabilidade pontual do lado deles.
 
 #### Contas/acessos usados
 
@@ -82,3 +94,4 @@ gh run list --workflow "verificar-sefaz.yml" --limit 3
 
 - Nada crítico em aberto no momento. Se a Sefaz/Fazenda um dia parar de derrubar clientes não-Windows, dá pra simplificar tudo de volta pra uma única Edge Function em Deno (o motivo de ter duas fontes deixa de existir).
 - O intervalo de 30 min do GitHub Actions pode ser reduzido se o repositório virar público (Actions ilimitado) ou se a conta habilitar cobrança.
+- A senha do site (`any@2019`) é só um portão client-side, não segurança de verdade.
