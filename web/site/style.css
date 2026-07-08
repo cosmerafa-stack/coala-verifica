@@ -203,31 +203,42 @@ main { padding: 20px 32px 40px; max-width: 1300px; margin: 0 auto; }
 .texto-apagado { color: var(--texto-apagado); font-size: 0.88rem; }
 
 table { width: 100%; border-collapse: collapse; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borda); font-size: 0.9rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--borda); font-size: 0.9rem; overflow-wrap: break-word; }
 th { color: var(--texto-apagado); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; }
 
 /* Fonte enxuta, Título largo o bastante pra caber numa linha só na imensa
    maioria dos casos ("..." só nos raros títulos bem longos), Do que se trata
-   com bastante espaço pra ler sem precisar de várias linhas. */
+   com bastante espaço pra ler sem precisar de várias linhas.
+   Fonte/Publicada em/Detectada em precisam de mais do que o nome sugere: os
+   cabeçalhos em maiúsculas ("FONTE", "PUBLICADA EM", "DETECTADA EM") não
+   cabiam nas larguras originais e vazavam por cima da coluna vizinha. */
 .tabela-notas { table-layout: fixed; }
-.tabela-notas th:nth-child(1), .tabela-notas td:nth-child(1) { width: 7%; }
-.tabela-notas th:nth-child(2), .tabela-notas td:nth-child(2) {
-  width: 40%;
+.tabela-notas th:nth-child(1), .tabela-notas td:nth-child(1) {
+  width: 15%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tabela-notas th:nth-child(3), .tabela-notas td:nth-child(3) { width: 33%; }
-.tabela-notas th:nth-child(4), .tabela-notas td:nth-child(4) { width: 9%; }
-.tabela-notas th:nth-child(5), .tabela-notas td:nth-child(5) { width: 11%; }
+.tabela-notas th:nth-child(2), .tabela-notas td:nth-child(2) {
+  width: 25%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tabela-notas th:nth-child(3), .tabela-notas td:nth-child(3) { width: 21%; }
+.tabela-notas th:nth-child(4), .tabela-notas td:nth-child(4) { width: 19.5%; }
+.tabela-notas th:nth-child(5), .tabela-notas td:nth-child(5) { width: 19.5%; }
 
 /* Histórico de Instabilidade tem só 4 colunas (não 5 como Notas Técnicas),
    então as larguras acima deixam "Fonte" e "Detalhe" estreitas demais para
    os cabeçalhos em maiúsculas, causando overflow horizontal. */
 #tabelaHistoricoInstabilidade th:nth-child(1), #tabelaHistoricoInstabilidade td:nth-child(1) { width: 13%; }
 #tabelaHistoricoInstabilidade th:nth-child(2), #tabelaHistoricoInstabilidade td:nth-child(2) { width: 28%; }
-#tabelaHistoricoInstabilidade th:nth-child(3), #tabelaHistoricoInstabilidade td:nth-child(3) { width: 43%; }
-#tabelaHistoricoInstabilidade th:nth-child(4), #tabelaHistoricoInstabilidade td:nth-child(4) { width: 16%; }
+#tabelaHistoricoInstabilidade th:nth-child(3), #tabelaHistoricoInstabilidade td:nth-child(3) { width: 37%; }
+#tabelaHistoricoInstabilidade th:nth-child(4), #tabelaHistoricoInstabilidade td:nth-child(4) {
+  width: 22%;
+  overflow-wrap: break-word;
+}
 
 .status-ok { color: var(--destaque); font-weight: 700; }
 .status-instavel { color: var(--amarelo); font-weight: 700; }
