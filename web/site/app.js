@@ -289,6 +289,101 @@ async function atualizarStatusGeral() {
   }
 }
 
+// ---------- histórico de instabilidade ----------
+
+const TIPO_INSTABILIDADE_LABEL = {
+  Lento: "Lento (até 5s)",
+  MuitoLento: "Muito lento (até 30s)",
+  Timeout: "Timeout (acima de 30s)",
+  Erro: "Erro de conexão",
+};
+
+let todosHistoricoInstabilidade = [];
+
+function formatarParaDatetimeLocal(data) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${data.getFullYear()}-${pad(data.getMonth() + 1)}-${pad(data.getDate())}T${pad(data.getHours())}:${pad(data.getMinutes())}`;
+}
+
+function definirJanelaPadraoHistorico() {
+  const agora = new Date();
+  const setentaEDuasHorasAtras = new Date(Date.now() - 72 * 60 * 60 * 1000);
+  document.getElementById("filtroHistoricoDe").value = formatarParaDatetimeLocal(setentaEDuasHorasAtras);
+  document.getElementById("filtroHistoricoAte").value = formatarParaDatetimeLocal(agora);
+}
+
+async function carregarHistoricoInstabilidade() {
+  try {
+    // Traz os registros de instabilidade mais recentes (qualquer nível
+    // diferente de "Normal", nas 3 fontes); o filtro de data é aplicado no
+    // cliente, então a janela padrão de 72h é só o valor inicial dos campos.
+    todosHistoricoInstabilidade = await supabaseGet(
+      `resposta_tempo?nivel=neq.Normal&select=*&order=verificado_em.desc&limit=1000`
+    );
+    aplicarFiltrosHistorico();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function aplicarFiltrosHistorico() {
+  const fonte = document.getElementById("filtroFonteHistorico").value;
+  const tipo = document.getElementById("filtroTipoHistorico").value;
+  const de = document.getElementById("filtroHistoricoDe").value;
+  const ate = document.getElementById("filtroHistoricoAte").value;
+
+  let filtrados = todosHistoricoInstabilidade;
+  if (fonte) filtrados = filtrados.filter((r) => r.documento === fonte);
+  if (tipo) filtrados = filtrados.filter((r) => r.nivel === tipo);
+  if (de) filtrados = filtrados.filter((r) => new Date(r.verificado_em) >= new Date(de));
+  if (ate) filtrados = filtrados.filter((r) => new Date(r.verificado_em) <= new Date(ate));
+
+  const corpo = document.querySelector("#tabelaHistoricoInstabilidade tbody");
+  if (filtrados.length === 0) {
+    corpo.innerHTML = `<tr><td colspan="4" class="texto-apagado">Nenhuma instabilidade encontrada para o filtro selecionado.</td></tr>`;
+  } else {
+    corpo.innerHTML = filtrados.map((r) => `
+      <tr>
+        <td>${r.documento}</td>
+        <td>${new Date(r.verificado_em).toLocaleString("pt-BR")}</td>
+        <td>${TIPO_INSTABILIDADE_LABEL[r.nivel] || r.nivel}</td>
+        <td>${r.detalhe || "-"}</td>
+      </tr>
+    `).join("");
+  }
+
+  document.getElementById("contagemHistorico").textContent = `${filtrados.length} de ${todosHistoricoInstabilidade.length} registro(s)`;
+}
+
+const modalHistorico = document.getElementById("modalHistoricoInstabilidade");
+
+document.getElementById("botaoHistoricoInstabilidade").addEventListener("click", async () => {
+  modalHistorico.classList.remove("oculta");
+  if (!document.getElementById("filtroHistoricoDe").value && !document.getElementById("filtroHistoricoAte").value) {
+    definirJanelaPadraoHistorico();
+  }
+  await carregarHistoricoInstabilidade();
+});
+
+document.getElementById("btnFecharHistorico").addEventListener("click", () => {
+  modalHistorico.classList.add("oculta");
+});
+
+modalHistorico.addEventListener("click", (ev) => {
+  if (ev.target === modalHistorico) modalHistorico.classList.add("oculta");
+});
+
+["filtroFonteHistorico", "filtroTipoHistorico", "filtroHistoricoDe", "filtroHistoricoAte"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", aplicarFiltrosHistorico);
+});
+
+document.getElementById("btnLimparFiltrosHistorico").addEventListener("click", () => {
+  document.getElementById("filtroFonteHistorico").value = "";
+  document.getElementById("filtroTipoHistorico").value = "";
+  definirJanelaPadraoHistorico();
+  aplicarFiltrosHistorico();
+});
+
 // ---------- seções de lista filtrável (notas técnicas / manuais técnicos) ----------
 // Mesma estrutura pras duas: fonte/título/descrição/data_publicacao/url/detectado_em,
 // com os mesmos filtros e tabela — só muda a tabela do Supabase e os ids no DOM.
@@ -425,6 +520,9 @@ function aplicarIntervalo(ms) {
   setInterval(carregarStatus, ms);
   setInterval(carregarNotas, ms);
   setInterval(carregarManuais, ms);
+  setInterval(() => {
+    if (!modalHistorico.classList.contains("oculta")) carregarHistoricoInstabilidade();
+  }, ms);
 }
 
 // ---------- forçar atualização (desativado) ----------

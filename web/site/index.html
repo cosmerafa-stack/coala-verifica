@@ -65,6 +65,7 @@
         <button class="aba-doc ativa" data-doc="NFe">NFe</button>
         <button class="aba-doc" data-doc="NFCe">NFCe</button>
         <button class="aba-doc" data-doc="CTe">CTe</button>
+        <button class="aba-doc-historico" id="botaoHistoricoInstabilidade" type="button">📋 Histórico de Instabilidade</button>
       </div>
 
       <div class="cartao">
@@ -171,6 +172,44 @@
       </div>
     </section>
   </main>
+
+  <div id="modalHistoricoInstabilidade" class="modal-overlay oculta">
+    <div class="modal-cartao">
+      <div class="modal-cabecalho">
+        <h2>Histórico de Instabilidade</h2>
+        <button id="btnFecharHistorico" class="botao-fechar-modal" aria-label="Fechar" type="button">✕</button>
+      </div>
+      <div class="filtros">
+        <label>Fonte
+          <select id="filtroFonteHistorico">
+            <option value="">Todas</option>
+            <option value="NFe">NFe</option>
+            <option value="NFCe">NFCe</option>
+            <option value="CTe">CTe</option>
+          </select>
+        </label>
+        <label>Tipo de instabilidade
+          <select id="filtroTipoHistorico">
+            <option value="">Todos</option>
+            <option value="Lento">Lento (até 5s)</option>
+            <option value="MuitoLento">Muito lento (até 30s)</option>
+            <option value="Timeout">Timeout (acima de 30s)</option>
+            <option value="Erro">Erro de conexão</option>
+          </select>
+        </label>
+        <label>De <input type="datetime-local" id="filtroHistoricoDe" /></label>
+        <label>Até <input type="datetime-local" id="filtroHistoricoAte" /></label>
+        <button id="btnLimparFiltrosHistorico" type="button">Limpar filtros</button>
+      </div>
+      <p class="texto-apagado" id="contagemHistorico"></p>
+      <div class="modal-corpo-tabela">
+        <table class="tabela-notas" id="tabelaHistoricoInstabilidade">
+          <thead><tr><th>Fonte</th><th>Data/hora</th><th>Tipo de instabilidade</th><th>Detalhe</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <footer>
     <p>Verificador Coala — dados oficiais de nfe.fazenda.gov.br, cte.fazenda.gov.br, gov.br/nfse e SPED. Todas as fontes são verificadas e a tela é recarregada a cada ~2 min.</p>
