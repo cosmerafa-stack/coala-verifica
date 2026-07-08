@@ -46,7 +46,7 @@ public sealed class StatusMonitor
             try
             {
                 var resultado = await DisponibilidadeSefazChecker.VerificarAsync(_http, documento, ct);
-                if (resultado is not null) disponibilidades.Add(resultado);
+                disponibilidades.Add(resultado);
             }
             catch (Exception ex)
             {

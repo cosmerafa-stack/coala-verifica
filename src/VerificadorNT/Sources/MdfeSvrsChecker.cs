@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
 
@@ -35,7 +36,10 @@ public sealed partial class MdfeSvrsChecker(string paginaUrl) : ISourceChecker
             if (!FiltroNotaTecnica.EhNotaTecnica(titulo)) continue;
 
             var tempo = artigo.SelectSingleNode(".//time[contains(@class,'conteudo-lista__item__datahora')]");
-            var data = tempo?.GetAttributeValue("datetime", null)?.Trim() ?? tempo?.InnerText.Trim();
+            var dataIso = tempo?.GetAttributeValue("datetime", null)?.Trim();
+            var data = dataIso is not null && DateTime.TryParse(dataIso, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dataParseada)
+                ? dataParseada.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
+                : tempo?.InnerText.Trim();
 
             var paragrafos = artigo.SelectNodes(".//p");
             var descricao = paragrafos is null

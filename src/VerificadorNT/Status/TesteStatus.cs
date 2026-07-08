@@ -10,29 +10,24 @@ public static class TesteStatus
     public static async Task ExecutarAsync()
     {
         var sb = new StringBuilder();
-        try
+        using (var http = SecureHttpClientFactory.Criar())
         {
-            using var http = SecureHttpClientFactory.Criar();
             foreach (var documento in DisponibilidadeSefazChecker.Documentos)
             {
-                var disp = await DisponibilidadeSefazChecker.VerificarAsync(http, documento, CancellationToken.None);
                 sb.AppendLine($"=== Disponibilidade {documento.Nome} - Bahia (linha '{documento.LinhaBahia}') ===");
-                if (disp is null)
+                try
                 {
-                    sb.AppendLine($"Não encontrou a linha '{documento.LinhaBahia}' na tabela.");
-                }
-                else
-                {
+                    var disp = await DisponibilidadeSefazChecker.VerificarAsync(http, documento, CancellationToken.None);
                     sb.AppendLine($"TemProblema: {disp.TemProblema}");
                     foreach (var s in disp.Servicos)
                         sb.AppendLine($"  {s.Nome}: {s.Cor}");
                 }
+                catch (Exception ex)
+                {
+                    sb.AppendLine($"ERRO: {ex.Message}");
+                }
                 sb.AppendLine();
             }
-        }
-        catch (Exception ex)
-        {
-            sb.AppendLine($"ERRO disponibilidade: {ex}");
         }
 
         sb.AppendLine();

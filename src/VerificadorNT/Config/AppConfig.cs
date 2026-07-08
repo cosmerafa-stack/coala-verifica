@@ -53,6 +53,8 @@ public sealed class AppConfig
     {
         Directory.CreateDirectory(PastaDados);
         var json = JsonSerializer.Serialize(this, JsonOpts);
-        File.WriteAllText(CaminhoArquivo, json);
+        var caminhoTemporario = CaminhoArquivo + ".tmp";
+        File.WriteAllText(caminhoTemporario, json);
+        File.Move(caminhoTemporario, CaminhoArquivo, overwrite: true);
     }
 }

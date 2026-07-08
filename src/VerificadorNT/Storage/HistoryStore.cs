@@ -101,7 +101,9 @@ public sealed class HistoryStore
         {
             Directory.CreateDirectory(PastaDados);
             var json = JsonSerializer.Serialize(_itens, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(CaminhoArquivo, json);
+            var caminhoTemporario = CaminhoArquivo + ".tmp";
+            File.WriteAllText(caminhoTemporario, json);
+            File.Move(caminhoTemporario, CaminhoArquivo, overwrite: true);
         }
     }
 }

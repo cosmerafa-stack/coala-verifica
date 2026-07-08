@@ -20,7 +20,7 @@ public static class DisponibilidadeSefazChecker
 
     public static readonly IReadOnlyList<DocumentoMonitorado> Documentos = [NfeNfce, Cte];
 
-    public static async Task<DisponibilidadeResultado?> VerificarAsync(
+    public static async Task<DisponibilidadeResultado> VerificarAsync(
         HttpClient http, DocumentoMonitorado documento, CancellationToken ct)
     {
         var html = await http.GetStringAsync(documento.Url, ct);
@@ -29,7 +29,9 @@ public static class DisponibilidadeSefazChecker
         doc.LoadHtml(html);
 
         var tabela = doc.DocumentNode.SelectSingleNode("//table[contains(@id,'gdvDisponibilidade')]");
-        if (tabela is null) return null;
+        if (tabela is null)
+            throw new InvalidOperationException(
+                $"Página de disponibilidade de {documento.Nome} não tem a tabela esperada (id contendo 'gdvDisponibilidade') — o site pode ter mudado o layout ou estar fora do ar.");
 
         var linhaCabecalho = tabela.SelectSingleNode(".//tr[1]");
         var cabecalhos = linhaCabecalho?.SelectNodes(".//th")
@@ -37,7 +39,9 @@ public static class DisponibilidadeSefazChecker
             .ToList() ?? new List<string>();
 
         var linhas = tabela.SelectNodes(".//tr[position()>1]");
-        if (linhas is null) return null;
+        if (linhas is null)
+            throw new InvalidOperationException(
+                $"Tabela de disponibilidade de {documento.Nome} não tem nenhuma linha de dado além do cabeçalho.");
 
         foreach (var linha in linhas)
         {
@@ -70,7 +74,8 @@ public static class DisponibilidadeSefazChecker
             };
         }
 
-        return null;
+        throw new InvalidOperationException(
+            $"Tabela de disponibilidade de {documento.Nome} não tem uma linha para '{documento.LinhaBahia}' — o site pode ter mudado o layout.");
     }
 
     private static string? ExtrairCor(string srcImagem)
