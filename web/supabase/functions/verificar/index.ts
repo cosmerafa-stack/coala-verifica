@@ -216,13 +216,46 @@ async function verificarSped(resultado: Resultado) {
   }
 }
 
+// ---------- throttle ----------
+
+// Essa function é pública (verify_jwt=false, precisa ser chamada pelo pg_cron
+// e pelo botão "Atualizar agora"), então não há autenticação — sem limite de
+// chamadas, qualquer um que descobrisse a URL poderia martelar o endpoint e
+// gerar tráfego repetido contra sites de terceiros (SVRS, gov.br/nfse,
+// Receita). O pg_cron chama a cada 2 min, então 60s de intervalo mínimo não
+// atrapalha o funcionamento normal.
+const NOME_FUNCAO = "verificar";
+const INTERVALO_MINIMO_SEGUNDOS = 60;
+
+async function jaExecutouRecentemente(): Promise<{ recente: boolean; segundosAtras: number }> {
+  const { data } = await supabase
+    .from("funcao_ultima_execucao")
+    .select("executado_em")
+    .eq("funcao", NOME_FUNCAO)
+    .maybeSingle();
+
+  if (!data) return { recente: false, segundosAtras: Infinity };
+
+  const segundosAtras = (Date.now() - new Date(data.executado_em).getTime()) / 1000;
+  return { recente: segundosAtras < INTERVALO_MINIMO_SEGUNDOS, segundosAtras };
+}
+
+async function marcarExecucaoAgora() {
+  await supabase
+    .from("funcao_ultima_execucao")
+    .upsert({ funcao: NOME_FUNCAO, executado_em: new Date().toISOString() });
+}
+
 // ---------- handler principal ----------
 
 // O botão "Atualizar agora" do site chama essa function direto do navegador
 // (origem diferente: verificadorcoala.pages.dev -> *.supabase.co), então
 // precisa dos cabeçalhos CORS — sem eles o navegador bloqueia a chamada.
+// Restrito à origem real do site (em vez de "*") pra que só o próprio site
+// consiga disparar essa chamada a partir do navegador de um visitante; o
+// pg_cron chama de servidor pra servidor, então não passa pelo CORS.
 const cabecalhosCors = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://verificadorcoala.pages.dev",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type",
 };
@@ -231,6 +264,18 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: cabecalhosCors });
   }
+
+  const { recente, segundosAtras } = await jaExecutouRecentemente();
+  if (recente) {
+    return new Response(
+      JSON.stringify({
+        executado: false,
+        motivo: `Já rodou há ${segundosAtras.toFixed(0)}s — espera pelo menos ${INTERVALO_MINIMO_SEGUNDOS}s entre execuções.`,
+      }),
+      { status: 429, headers: { "Content-Type": "application/json", ...cabecalhosCors } },
+    );
+  }
+  await marcarExecucaoAgora();
 
   const resultado: Resultado = { notas: 0, erros: [] };
 

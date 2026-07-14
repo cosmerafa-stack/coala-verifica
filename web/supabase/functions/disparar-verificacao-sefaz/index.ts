@@ -30,8 +30,11 @@ const headersGithub = {
 // O botão "Atualizar agora" do site chama essa function direto do navegador
 // (origem diferente: verificadorcoala.pages.dev -> *.supabase.co), então
 // precisa dos cabeçalhos CORS — sem eles o navegador bloqueia a chamada.
+// Restrito à origem real do site (em vez de "*") pra que só o próprio site
+// consiga disparar essa chamada a partir do navegador de um visitante; o
+// pg_cron chama de servidor pra servidor, então não passa pelo CORS.
 const cabecalhosCors = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": "https://verificadorcoala.pages.dev",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type",
 };
